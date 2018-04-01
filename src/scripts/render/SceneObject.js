@@ -16,11 +16,11 @@ export default class SceneObject {
   // eslint-disable-next-line no-unused-vars
   update(delta: number) {}
 
-  onAddToScene(scene: Scene) {
+  onAddedToScene(scene: Scene) {
     this._scene = scene;
   }
 
-  onRemoveFromScene() {
+  onRemovedFromScene() {
     this._scene = null;
   }
 }

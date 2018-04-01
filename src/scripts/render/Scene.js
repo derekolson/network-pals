@@ -47,7 +47,7 @@ export default class Scene {
 
   addChild(child: SceneObject) {
     this._children.push(child);
-    child.onAddToScene(this);
+    child.onAddedToScene(this);
   }
 
   addChildBefore(targetChild: SceneObject, newChild: SceneObject) {
@@ -66,7 +66,7 @@ export default class Scene {
 
   addChildAtIndex(index: number, child: SceneObject) {
     this._children.splice(index, 0, child);
-    child.onAddToScene(this);
+    child.onAddedToScene(this);
   }
 
   removeChild(child: SceneObject): boolean {
@@ -80,6 +80,7 @@ export default class Scene {
   removeChildAtIndex(index: number): SceneObject {
     const child = this._children[index];
     this._children.splice(index, 1);
+    child.onRemovedFromScene();
     return child;
   }
 

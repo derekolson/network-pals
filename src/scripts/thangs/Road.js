@@ -49,6 +49,20 @@ export default class Road extends SceneObject implements Connectable {
     traveller.onAddedToRoad(this);
   }
 
+  removeTraveller(traveller: Traveller): boolean {
+    const index = this._currentTravellers.indexOf(traveller);
+    if (index === -1) return false;
+    this.removeTravellerAtIndex(index);
+    return true;
+  }
+
+  removeTravellerAtIndex(index: number): Traveller {
+    const traveller = this._currentTravellers[index];
+    this._currentTravellers.splice(index, 1);
+    traveller.onRemovedFromRoad();
+    return traveller;
+  }
+
   // eslint-disable-next-line no-unused-vars
   connectTo(node: Connectable, direction: ConnectionDirection) {
     invariant('Cannot call connectTo on road hmm i should refactor this');
@@ -60,6 +74,22 @@ export default class Road extends SceneObject implements Connectable {
 
   getPointAtPosition(position: number): Vector2 {
     return this._path.getPointAtPosition(position);
+  }
+
+  getTravellerAfterPosition(position: number): Traveller | null {
+    let bestTraveller = null;
+    let bestDistance = Infinity;
+
+    this._currentTravellers.forEach(traveller => {
+      const distance = traveller.positionOnCurrentRoad - position;
+      if (distance <= 0) return;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestTraveller = traveller;
+      }
+    });
+
+    return bestTraveller;
   }
 
   draw(ctx: CanvasRenderingContext2D, time: number) {

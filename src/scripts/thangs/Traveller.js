@@ -9,12 +9,14 @@ import type Road from './Road';
 import type { NetworkNode } from './interfaces';
 
 const TRAVELLER_COLOR = BLUE;
-const TRAVELLLER_RADIUS = 7;
+const TRAVELLER_RADIUS = 7;
+const TRAVELLER_SAFE_RADIUS = 20;
 
 const INITIAL_SPEED = 20;
 const MAX_SPEED = 70;
 const ACCELERATION = 20;
 const DECELERATION = -40;
+const ROAD_END_OVERSHOOT = 20;
 
 const ENTER_DURATION = 400;
 const EXIT_DURATION = 400;
@@ -33,12 +35,24 @@ export default class Traveller extends SceneObject {
   _exitStartedAt: number | null = null;
   i = i++;
 
+  get positionOnCurrentRoad(): number {
+    return this._positionOnCurrentRoad;
+  }
+
   onAddedToRoad(road: Road) {
     this._currentRoad = road;
     this._positionOnCurrentRoad = 0;
     if (!this._destination) {
       this._pickDestination();
     }
+  }
+
+  onRemovedFromRoad() {
+    this._currentRoad = null;
+  }
+
+  onRemovedFromScene() {
+    if (this._currentRoad) this._currentRoad.removeTraveller(this);
   }
 
   update(dtMilliseconds: number) {
@@ -65,7 +79,7 @@ export default class Traveller extends SceneObject {
 
     ctx.beginPath();
     ctx.fillStyle = TRAVELLER_COLOR.toString();
-    ShapeHelpers.circle(ctx, position.x, position.y, TRAVELLLER_RADIUS * scale);
+    ShapeHelpers.circle(ctx, position.x, position.y, TRAVELLER_RADIUS * scale);
     ctx.fill();
   }
 
@@ -118,13 +132,28 @@ export default class Traveller extends SceneObject {
   _move(dtMilliseconds: number, currentRoad: Road) {
     const dtSeconds = dtMilliseconds / 1000;
 
-    const stopPosition = this._getPredictedStopPositionIfDecelerating();
-    const distanceToEnd = currentRoad.length;
-    if (distanceToEnd < stopPosition) {
+    if (this._shouldDecelerate(currentRoad)) {
       this._accelerate(DECELERATION, dtSeconds, currentRoad);
     } else {
       this._accelerate(ACCELERATION, dtSeconds, currentRoad);
     }
+  }
+
+  _shouldDecelerate(currentRoad: Road): boolean {
+    const stopPosition = this._getPredictedStopPositionIfDecelerating();
+    if (currentRoad.length + ROAD_END_OVERSHOOT < stopPosition) return true;
+
+    const nextTraveller = currentRoad.getTravellerAfterPosition(
+      this._positionOnCurrentRoad,
+    );
+
+    if (
+      nextTraveller &&
+      nextTraveller.positionOnCurrentRoad - TRAVELLER_SAFE_RADIUS < stopPosition
+    ) {
+      return true;
+    }
+    return false;
   }
 
   _accelerate(acceleration: number, dtSeconds: number, currentRoad: Road) {
