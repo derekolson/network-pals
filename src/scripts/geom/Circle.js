@@ -1,12 +1,19 @@
 // @flow
-import Point from './Point';
+import Vector2 from './Vector2';
 
 export default class Circle {
-  center: Point;
+  center: Vector2;
   radius: number;
 
   constructor(x: number, y: number, radius: number) {
-    this.center = new Point(x, y);
+    this.center = new Vector2(x, y);
     this.radius = radius;
+  }
+
+  pointOnCircumference(radians: number) {
+    return new Vector2(
+      this.center.x + Math.cos(radians) * this.radius,
+      this.center.y + Math.sin(radians) * this.radius,
+    );
   }
 }

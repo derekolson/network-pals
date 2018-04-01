@@ -4,35 +4,35 @@
 type $npm$color$RGBObject = {
   r: number,
   g: number,
-  b: number
+  b: number,
 };
 
 type $npm$color$HSLObject = {
   h: number,
   s: number,
-  l: number
+  l: number,
 };
 
 type $npm$color$HSVObject = {
   h: number,
   s: number,
-  v: number
+  v: number,
 };
 
 type $npm$color$HWBObject = {
   h: number,
   w: number,
-  b: number
+  b: number,
 };
 
 type $npm$color$CMYKObject = {
   c: number,
   m: number,
   y: number,
-  k: number
+  k: number,
 };
 
-declare module "color" {
+declare module 'color' {
   declare class Color {
     constructor(value?: $npm$color$RGBObject | string): Color;
 
@@ -111,6 +111,7 @@ declare module "color" {
     dark(): boolean;
     darken(value: number): Color;
     desaturate(value: number): Color;
+    fade(value: number): Color;
     grayscale(): Color;
     hexString(): string;
     hslString(): string;

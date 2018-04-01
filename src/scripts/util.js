@@ -13,3 +13,11 @@ export const mapRange = (
 
 export const constrain = (min: number, max: number, n: number): number =>
   Math.min(max, Math.max(min, n));
+
+export const random = (min: number, max: number): number =>
+  lerp(min, max, Math.random());
+
+export const randomInt = (min: number, max: number): number =>
+  Math.floor(random(min, max));
+
+export const sample = <T>(arr: T[]): T => arr[randomInt(0, arr.length)];

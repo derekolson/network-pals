@@ -1,13 +1,13 @@
 // @flow
-import Point from './Point';
+import Vector2 from './Vector2';
 
 export default class Rect {
-  center: Point;
+  center: Vector2;
   width: number;
   height: number;
 
   constructor(x: number, y: number, width: number, height: number) {
-    this.center = new Point(x, y);
+    this.center = new Vector2(x, y);
     this.width = width;
     this.height = height;
   }

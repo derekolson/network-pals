@@ -11,7 +11,7 @@ export default class SceneObject {
   }
 
   // eslint-disable-next-line no-unused-vars
-  draw(ctx: CanvasRenderingContext2D) {}
+  draw(ctx: CanvasRenderingContext2D, elapsedTime: number) {}
 
   // eslint-disable-next-line no-unused-vars
   update(delta: number) {}

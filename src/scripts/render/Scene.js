@@ -83,11 +83,11 @@ export default class Scene {
     return child;
   }
 
-  draw() {
+  draw(elapsedTime: number) {
     this._ctx.clearRect(0, 0, this.width, this.height);
     this._ctx.save();
     this._ctx.scale(this._scaleFactor, this._scaleFactor);
-    this._children.forEach(child => child.draw(this._ctx));
+    this._children.forEach(child => child.draw(this._ctx, elapsedTime));
     this._ctx.restore();
   }
 
@@ -106,7 +106,7 @@ export default class Scene {
       const deltaTime = elapsedTime - lastElapsedTime;
       if (this.isPlaying) {
         this.update(deltaTime);
-        this.draw();
+        this.draw(elapsedTime);
       }
     }
 
