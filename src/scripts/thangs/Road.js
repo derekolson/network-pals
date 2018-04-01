@@ -44,6 +44,14 @@ export default class Road extends SceneObject implements Connectable {
     return this._path.length;
   }
 
+  canAddTravellerAtStart(): boolean {
+    const nextTraveller = this.getTravellerAfterPosition(0);
+    if (!nextTraveller) return true;
+    return (
+      nextTraveller.positionOnCurrentRoad > nextTraveller.comfortableRadius
+    );
+  }
+
   addTravellerAtStart(traveller: Traveller) {
     this._currentTravellers.push(traveller);
     traveller.onAddedToRoad(this);

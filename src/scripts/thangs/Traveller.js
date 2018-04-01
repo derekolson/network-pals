@@ -13,10 +13,10 @@ const TRAVELLER_RADIUS = 7;
 const TRAVELLER_SAFE_RADIUS = 20;
 
 const INITIAL_SPEED = 20;
-const MAX_SPEED = 70;
-const ACCELERATION = 20;
-const DECELERATION = -40;
-const ROAD_END_OVERSHOOT = 20;
+const MAX_SPEED = 100;
+const ACCELERATION = 70;
+const DECELERATION = -100;
+const ROAD_END_OVERSHOOT = 5;
 
 const ENTER_DURATION = 400;
 const EXIT_DURATION = 400;
@@ -37,6 +37,10 @@ export default class Traveller extends SceneObject {
 
   get positionOnCurrentRoad(): number {
     return this._positionOnCurrentRoad;
+  }
+
+  get comfortableRadius(): number {
+    return TRAVELLER_SAFE_RADIUS;
   }
 
   onAddedToRoad(road: Road) {
@@ -147,11 +151,11 @@ export default class Traveller extends SceneObject {
       this._positionOnCurrentRoad,
     );
 
-    if (
-      nextTraveller &&
-      nextTraveller.positionOnCurrentRoad - TRAVELLER_SAFE_RADIUS < stopPosition
-    ) {
-      return true;
+    if (nextTraveller) {
+      return (
+        nextTraveller.positionOnCurrentRoad - nextTraveller.comfortableRadius <
+        stopPosition
+      );
     }
     return false;
   }

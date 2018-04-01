@@ -13,7 +13,7 @@ import Traveller from './Traveller';
 import Road from './Road';
 import type { NetworkNode, Connectable } from './interfaces';
 
-const DEFAULT_COOLDOWN = 1000;
+const DEFAULT_COOLDOWN = 500;
 
 const RADIUS = 20;
 const VISUAL_CONNECTION_RADIUS = 30;
@@ -55,10 +55,8 @@ export default class Producer extends SceneObject implements NetworkNode {
   }
 
   update(delta: number) {
-    this._timer += delta;
-    if (this._timer > this._cooldown) {
-      this._timer -= this._cooldown;
-
+    this._timer = constrain(0, this._cooldown, this._timer + delta);
+    if (this._timer >= this._cooldown) {
       this._onTimerEnd();
     }
   }
@@ -107,9 +105,16 @@ export default class Producer extends SceneObject implements NetworkNode {
     ctx.fill();
   }
 
+  _resetTimer() {
+    this._timer = 0;
+  }
+
   _onTimerEnd() {
-    this._pulse();
-    this._emitTraveller();
+    const didEmitTraveller = this._attemptEmitTraveller();
+    if (didEmitTraveller) {
+      this._pulse();
+      this._resetTimer();
+    }
   }
 
   _pulse() {
@@ -128,11 +133,17 @@ export default class Producer extends SceneObject implements NetworkNode {
     );
   }
 
-  _emitTraveller() {
+  _attemptEmitTraveller(): boolean {
     const traveller = new Traveller();
     const road = this._connectionSet.sampleOutgoing();
-    if (!(road instanceof Road)) return;
-    road.addTravellerAtStart(traveller);
-    this.getScene().addChild(traveller);
+    if (!(road instanceof Road)) return false;
+
+    if (road.canAddTravellerAtStart()) {
+      road.addTravellerAtStart(traveller);
+      this.getScene().addChild(traveller);
+      return true;
+    } else {
+      return false;
+    }
   }
 }
