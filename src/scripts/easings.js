@@ -1,6 +1,9 @@
 // @flow
 // https://gist.github.com/rezoner/713615dabedb59a15470
 // http://gsgd.co.uk/sandbox/jquery/easing/
+export const reverse = (easing: number => number) => (n: number): number =>
+  easing(1 - n);
+
 export const linear = (n: number): number => n;
 
 export const inQuad = (t: number): number => t * t;

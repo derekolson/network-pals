@@ -6,16 +6,17 @@ import Circle from '../geom/Circle';
 import { linear } from '../easings';
 import { lerp } from '../util';
 
-type PulseOptions = {
+type PulseOptions = {|
   x: number,
   y: number,
   startRadius: number,
   endRadius: number,
   duration: number,
   color: Color,
-  ease?: number => number,
+  easeRadius?: number => number,
+  easeOpacity?: number => number,
   removeOnComplete?: boolean,
-};
+|};
 
 export default class Pulse extends SceneObject {
   _circle: Circle;
@@ -24,7 +25,8 @@ export default class Pulse extends SceneObject {
   _duration: number;
   _color: Color;
   _progress: number;
-  _ease: number => number;
+  _easeRadius: number => number;
+  _easeOpacity: number => number;
   _removeOnComplete: boolean;
 
   constructor({
@@ -34,7 +36,8 @@ export default class Pulse extends SceneObject {
     endRadius,
     duration,
     color,
-    ease = linear,
+    easeRadius = linear,
+    easeOpacity = linear,
     removeOnComplete = false,
   }: PulseOptions) {
     super();
@@ -44,7 +47,8 @@ export default class Pulse extends SceneObject {
     this._duration = duration;
     this._color = color;
     this._progress = 0;
-    this._ease = ease;
+    this._easeRadius = easeRadius;
+    this._easeOpacity = easeOpacity;
     this._removeOnComplete = removeOnComplete;
   }
 
@@ -54,7 +58,7 @@ export default class Pulse extends SceneObject {
     this._circle.radius = lerp(
       this._startRadius,
       this._endRadius,
-      this._ease(this._progress),
+      this._easeRadius(this._progress),
     );
 
     if (this._progress === 1 && this._removeOnComplete) {
@@ -64,7 +68,8 @@ export default class Pulse extends SceneObject {
 
   draw(ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
-    ctx.fillStyle = this._color.fade(this._progress).toString();
+    const opacity = this._easeOpacity(this._progress);
+    ctx.fillStyle = this._color.fade(opacity).toString();
     ShapeHelpers.circle(
       ctx,
       this._circle.center.x,

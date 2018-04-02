@@ -1,8 +1,9 @@
 // @flow
 import { constrain } from '../../util';
 import Vector2 from '../Vector2';
+import type { PathSegment } from './Path';
 
-export default class StraightPathSegment {
+export default class StraightPathSegment implements PathSegment {
   start: Vector2;
   end: Vector2;
   _difference: Vector2;

@@ -10,6 +10,10 @@ export default class Circle {
     this.radius = radius;
   }
 
+  get circumference(): number {
+    return 2 * Math.PI * this.radius;
+  }
+
   pointOnCircumference(radians: number) {
     return new Vector2(
       this.center.x + Math.cos(radians) * this.radius,

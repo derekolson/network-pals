@@ -7,6 +7,7 @@ import { BLUE } from '../colors';
 import { outBack, inBack } from '../easings';
 import type Road from './Road';
 import type { NetworkNode } from './interfaces';
+import Consumer from './Consumer';
 
 const TRAVELLER_COLOR = BLUE;
 const TRAVELLER_RADIUS = 7;
@@ -189,7 +190,11 @@ export default class Traveller extends SceneObject {
   }
 
   _onReachEndOfCurrentRoad() {
-    this._exit();
+    const destination = this._destination;
+    if (destination instanceof Consumer && destination.canConsumeTraveller) {
+      destination.consumeTraveller();
+      this._exit();
+    }
   }
 
   _onExit() {

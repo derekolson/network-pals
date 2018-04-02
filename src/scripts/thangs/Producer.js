@@ -31,7 +31,7 @@ export default class Producer extends SceneObject implements NetworkNode {
   _circle: Circle;
   _visualConnectionCircle: Circle;
   _cooldown: number;
-  _timer: number;
+  _timer: number = 0;
   _connectionSet: ConnectionSet = new ConnectionSet();
 
   constructor(x: number, y: number, cooldown: number = DEFAULT_COOLDOWN) {
@@ -39,7 +39,6 @@ export default class Producer extends SceneObject implements NetworkNode {
     this._circle = new Circle(x, y, RADIUS);
     this._visualConnectionCircle = new Circle(x, y, VISUAL_CONNECTION_RADIUS);
     this._cooldown = cooldown;
-    this._timer = 0;
   }
 
   get position(): Vector2 {
@@ -127,7 +126,7 @@ export default class Producer extends SceneObject implements NetworkNode {
         endRadius: PULSE_RADIUS,
         duration: PULSE_DURATION,
         color: PULSE_COLOR,
-        ease: outSine,
+        easeRadius: outSine,
         removeOnComplete: true,
       }),
     );

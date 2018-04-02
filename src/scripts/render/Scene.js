@@ -19,6 +19,8 @@ export default class Scene {
     this._canvas.style.height = `${height}px`;
     this._ctx = this._canvas.getContext('2d');
     this._scaleFactor = scaleFactor;
+
+    this._setupVisiblityChange();
   }
 
   get width(): number {
@@ -101,6 +103,15 @@ export default class Scene {
     this._frameHandle = window.requestAnimationFrame(this._tick);
   }
 
+  stop() {
+    if (this._frameHandle !== null) {
+      window.cancelAnimationFrame(this._frameHandle);
+      this._frameHandle = null;
+    }
+    this._isPlaying = false;
+    this._lastElapsedTime = null;
+  }
+
   _tick = (elapsedTime: number) => {
     const lastElapsedTime = this._lastElapsedTime;
     if (lastElapsedTime !== null) {
@@ -114,4 +125,18 @@ export default class Scene {
     this._lastElapsedTime = elapsedTime;
     this._frameHandle = window.requestAnimationFrame(this._tick);
   };
+
+  _setupVisiblityChange() {
+    let playOnVisible = false;
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && this.isPlaying) {
+        playOnVisible = true;
+        this.stop();
+      }
+      if (playOnVisible && !document.hidden) {
+        playOnVisible = false;
+        this.start();
+      }
+    });
+  }
 }

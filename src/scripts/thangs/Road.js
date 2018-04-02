@@ -1,8 +1,10 @@
 // @flow
 import invariant from 'invariant';
+import Path from '../geom/path/Path';
 import StraightPathSegment from '../geom/path/StraightPathSegment';
 import type Vector2 from '../geom/Vector2';
 import SceneObject from '../render/SceneObject';
+import ShapeHelpers from '../render/ShapeHelpers';
 import { YELLOW } from '../colors';
 import ConnectionSet from './ConnectionSet';
 import type { ConnectionDirection } from './ConnectionSet';
@@ -21,20 +23,26 @@ const ROAD_DASH_SPEED = 0.05;
 export default class Road extends SceneObject implements Connectable {
   _from: NetworkNode;
   _to: NetworkNode;
-  _path: StraightPathSegment;
+  _path: Path;
   _currentTravellers: Traveller[] = [];
 
-  constructor(from: NetworkNode, to: NetworkNode) {
+  constructor(from: NetworkNode, to: NetworkNode, path?: Path) {
     super();
     this._from = from;
     this._to = to;
 
-    const angleFrom = from.position.angleBetween(to.position);
-    const angleTo = to.position.angleBetween(from.position);
-    this._path = new StraightPathSegment(
-      from.getVisualConnectionPointAtAngle(angleFrom),
-      to.getVisualConnectionPointAtAngle(angleTo),
-    );
+    if (path) {
+      this._path = path;
+    } else {
+      const angleFrom = from.position.angleBetween(to.position);
+      const angleTo = to.position.angleBetween(from.position);
+      this._path = new Path().addSegment(
+        new StraightPathSegment(
+          from.getVisualConnectionPointAtAngle(angleFrom),
+          to.getVisualConnectionPointAtAngle(angleTo),
+        ),
+      );
+    }
 
     from.connectTo(this, ConnectionSet.OUT);
     to.connectTo(this, ConnectionSet.IN);
@@ -103,8 +111,7 @@ export default class Road extends SceneObject implements Connectable {
   draw(ctx: CanvasRenderingContext2D, time: number) {
     ctx.beginPath();
     ctx.lineCap = 'round';
-    ctx.moveTo(this._path.start.x, this._path.start.y);
-    ctx.lineTo(this._path.end.x, this._path.end.y);
+    ShapeHelpers.path(ctx, this._path);
 
     // ctx.strokeStyle = ROAD_OUTER_COLOR.toString();
     // ctx.lineWidth = ROAD_OUTER_WIDTH;
