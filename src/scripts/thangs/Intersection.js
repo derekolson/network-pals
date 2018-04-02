@@ -59,6 +59,20 @@ export default class Intersection implements NetworkNode {
     return this.position;
   }
 
+  getClosestOutgoingTraveller(): Traveller | null {
+    let bestTraveller = null;
+    let shortestDistance = Infinity;
+    this.outgoingConnections.forEach(road => {
+      const traveller = road.getTravellerAfterPosition(-1);
+      if (traveller && traveller.positionOnCurrentRoad < shortestDistance) {
+        bestTraveller = traveller;
+        shortestDistance = traveller.positionOnCurrentRoad;
+      }
+    });
+
+    return bestTraveller;
+  }
+
   connectTo(node: Road, direction: ConnectionDirection) {
     this._connectionSet.add(node, direction);
   }

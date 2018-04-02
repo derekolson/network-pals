@@ -2,15 +2,17 @@
 import invariant from 'invariant';
 import SceneObject from '../render/SceneObject';
 import ShapeHelpers from '../render/ShapeHelpers';
-import { sample, constrain, mapRange } from '../util';
+import { sample, constrain, mapRange, random } from '../util';
 import { BLUE } from '../colors';
 import { outBack, inBack } from '../easings';
 import type Road from './Road';
 import type { NetworkNode } from './interfaces';
+import Intersection from './Intersection';
 
-const TRAVELLER_COLOR = BLUE;
+const TRAVELLER_COLOR = BLUE.fade(0.4);
 const TRAVELLER_RADIUS = 7;
-const TRAVELLER_SAFE_RADIUS = 20;
+const MIN_TRAVELLER_SAFE_RADIUS = 30;
+const MAX_TRAVELLER_SAFE_RADIUS = 30;
 
 const INITIAL_SPEED = 20;
 const MAX_SPEED = 100;
@@ -27,6 +29,10 @@ const exitEase = inBack(3);
 let i = 0;
 
 export default class Traveller extends SceneObject {
+  comfortableRadius = random(
+    MIN_TRAVELLER_SAFE_RADIUS,
+    MAX_TRAVELLER_SAFE_RADIUS,
+  );
   _currentRoad: Road | null = null;
   _destination: NetworkNode | null = null;
   _positionOnCurrentRoad: number = 0;
@@ -37,10 +43,6 @@ export default class Traveller extends SceneObject {
 
   get positionOnCurrentRoad(): number {
     return this._positionOnCurrentRoad;
-  }
-
-  get comfortableRadius(): number {
-    return TRAVELLER_SAFE_RADIUS;
   }
 
   get destination(): NetworkNode | null {
@@ -155,18 +157,36 @@ export default class Traveller extends SceneObject {
 
   _shouldDecelerate(currentRoad: Road): boolean {
     const stopPosition = this._getPredictedStopPositionIfDecelerating();
-    if (currentRoad.length + ROAD_END_OVERSHOOT < stopPosition) return true;
+    if (
+      currentRoad.to === this._destination &&
+      currentRoad.length + ROAD_END_OVERSHOOT < stopPosition
+    )
+      return true;
 
-    const nextTraveller = currentRoad.getTravellerAfterPosition(
+    const nextTravellerOnRoad = currentRoad.getTravellerAfterPosition(
       this._positionOnCurrentRoad,
     );
 
-    if (nextTraveller) {
-      return (
-        nextTraveller.positionOnCurrentRoad - nextTraveller.comfortableRadius <
-        stopPosition
-      );
+    if (
+      nextTravellerOnRoad &&
+      nextTravellerOnRoad.positionOnCurrentRoad <
+        stopPosition + this.comfortableRadius
+    ) {
+      return true;
     }
+
+    if (currentRoad.to instanceof Intersection) {
+      const nextTravellerAfterIntersection = currentRoad.to.getClosestOutgoingTraveller();
+      if (
+        nextTravellerAfterIntersection &&
+        currentRoad.length +
+          nextTravellerAfterIntersection.positionOnCurrentRoad <
+          stopPosition + this.comfortableRadius
+      ) {
+        return true;
+      }
+    }
+
     return false;
   }
 
@@ -203,9 +223,9 @@ export default class Traveller extends SceneObject {
     const destination = this._destination;
     if (nextNode.canConsumeTraveller) {
       nextNode.consumeTraveller(this);
-    }
-    if (nextNode === destination) {
-      this._onReachDestination();
+      if (nextNode === destination) {
+        this._onReachDestination();
+      }
     }
   }
 

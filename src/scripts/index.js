@@ -18,47 +18,68 @@ const root = document.getElementById('root');
 invariant(root, '#root must be present');
 scene.appendTo(root);
 
-const producer1 = new Producer(100, 100, 1500);
-// const producer2 = new Consumer(100, 300, 2500);
-const consumer1 = new Consumer(400, 200, 500);
-const consumer2 = new Consumer(250, 200, 1000);
-scene.addChild(producer1);
-// scene.addChild(producer2);
-scene.addChild(consumer1);
-scene.addChild(consumer2);
+const scenario1 = () => {
+  const producer1 = new Producer(100, 100, 500);
+  // const producer2 = new Consumer(100, 300, 2500);
+  const consumer1 = new Consumer(400, 200);
+  const consumer2 = new Consumer(250, 200);
+  scene.addChild(producer1);
+  // scene.addChild(producer2);
+  scene.addChild(consumer1);
+  scene.addChild(consumer2);
 
-const intersection1 = new Intersection(230, 100);
-scene.addChild(new Road(producer1, intersection1));
-scene.addChild(
-  new Road(
-    intersection1,
-    consumer1,
-    new Path().addSegments(
-      new StraightPathSegment(new Vector2(230, 100), new Vector2(380, 100)),
-      new CirclePathSegment(new Vector2(380, 120), 20, Math.PI * -0.5, 0),
-      new StraightPathSegment(new Vector2(400, 120), new Vector2(400, 170)),
+  const intersection1 = new Intersection(230, 100);
+  scene.addChild(new Road(producer1, intersection1));
+  scene.addChild(
+    new Road(
+      intersection1,
+      consumer1,
+      new Path().addSegments(
+        new StraightPathSegment(new Vector2(230, 100), new Vector2(380, 100)),
+        new CirclePathSegment(new Vector2(380, 120), 20, Math.PI * -0.5, 0),
+        new StraightPathSegment(new Vector2(400, 120), new Vector2(400, 170)),
+      ),
     ),
-  ),
-);
-scene.addChild(
-  new Road(
-    intersection1,
-    consumer2,
-    new Path().addSegments(
-      new CirclePathSegment(new Vector2(230, 120), 20, Math.PI * -0.5, 0),
-      new StraightPathSegment(new Vector2(250, 120), new Vector2(250, 170)),
+  );
+  scene.addChild(
+    new Road(
+      intersection1,
+      consumer2,
+      new Path().addSegments(
+        new CirclePathSegment(new Vector2(230, 120), 20, Math.PI * -0.5, 0),
+        new StraightPathSegment(new Vector2(250, 120), new Vector2(250, 170)),
+      ),
     ),
-  ),
-);
+  );
+  // const path2 = new Path();
+  // path2.addSegments(
+  //   new StraightPathSegment(new Vector2(130, 300), new Vector2(380, 300)),
+  //   new CirclePathSegment(new Vector2(380, 280), 20, Math.PI * 0.5, 0),
+  //   new StraightPathSegment(new Vector2(400, 280), new Vector2(400, 230)),
+  // );
+  // const road2 = new Road(producer2, consumer1, path2);
+  // scene.addChild(road2);
+};
 
-// const path2 = new Path();
-// path2.addSegments(
-//   new StraightPathSegment(new Vector2(130, 300), new Vector2(380, 300)),
-//   new CirclePathSegment(new Vector2(380, 280), 20, Math.PI * 0.5, 0),
-//   new StraightPathSegment(new Vector2(400, 280), new Vector2(400, 230)),
-// );
-// const road2 = new Road(producer2, consumer1, path2);
-// scene.addChild(road2);
+const scenario2 = () => {
+  const producer = new Producer(100, 300, 500);
+  const intersection = new Intersection(300, 300);
+  const consumer1 = new Consumer(300, 100, 5000);
+  const consumer2 = new Consumer(500, 300, 5000);
+  const consumer3 = new Consumer(300, 500, 5000);
+  scene.addChild(producer);
+  scene.addChild(consumer1);
+  scene.addChild(consumer2);
+  scene.addChild(consumer3);
+
+  scene.addChild(new Road(producer, intersection));
+  scene.addChild(new Road(intersection, consumer1));
+  scene.addChild(new Road(intersection, consumer2));
+  scene.addChild(new Road(intersection, consumer3));
+};
+
+// scenario1();
+scenario2();
 
 scene.start();
 
