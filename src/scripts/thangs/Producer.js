@@ -29,7 +29,7 @@ const PULSE_COLOR = TEAL.lighten(0.2).fade(0.1);
 
 export default class Producer extends SceneObject implements NetworkNode {
   isDestination = false;
-  isNode = true;
+  canConsumeTraveller = false;
   _circle: Circle;
   _visualConnectionCircle: Circle;
   _cooldown: number;
@@ -47,12 +47,20 @@ export default class Producer extends SceneObject implements NetworkNode {
     return this._circle.center;
   }
 
-  getAllDestinations(visited: Set<NetworkNode> = new Set()) {
+  get incomingConnections(): Road[] {
+    return this._connectionSet.incoming;
+  }
+
+  get outgoingConnections(): Road[] {
+    return this._connectionSet.outgoing;
+  }
+
+  getAllReachableNodes(visited: Set<NetworkNode> = new Set()) {
     visited.add(this);
     return uniq(
       flatten(
         this._connectionSet.outgoing.map(road =>
-          road.getAllDestinations(visited),
+          road.getAllReachableNodes(visited),
         ),
       ),
     );
@@ -60,6 +68,10 @@ export default class Producer extends SceneObject implements NetworkNode {
 
   getVisualConnectionPointAtAngle(radians: number): Vector2 {
     return this._visualConnectionCircle.pointOnCircumference(radians);
+  }
+
+  consumeTraveller() {
+    throw new Error('producer cannot consume traveller');
   }
 
   connectTo(node: Road, direction: ConnectionDirection) {

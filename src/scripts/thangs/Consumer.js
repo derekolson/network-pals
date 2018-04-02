@@ -27,8 +27,7 @@ const CLOCK_COLOR = RED.darken(0.2);
 const PULSE_COLOR = RED.lighten(0.2).fade(0.4);
 
 export default class Consumer extends SceneObject implements NetworkNode {
-  isDestination = false;
-  isNode = true;
+  isDestination = true;
   _circle: Circle;
   _visualConnectionCircle: Circle;
   _cooldown: number;
@@ -50,11 +49,20 @@ export default class Consumer extends SceneObject implements NetworkNode {
     return this._timer >= this._cooldown;
   }
 
+  get incomingConnections(): Road[] {
+    return this._connectionSet.incoming;
+  }
+
+  get outgoingConnections(): Road[] {
+    return this._connectionSet.outgoing;
+  }
+
   getVisualConnectionPointAtAngle(radians: number): Vector2 {
     return this._visualConnectionCircle.pointOnCircumference(radians);
   }
 
-  getAllDestinations(): NetworkNode[] {
+  getAllReachableNodes(visited: Set<NetworkNode> = new Set()): NetworkNode[] {
+    visited.add(this);
     return [this];
   }
 

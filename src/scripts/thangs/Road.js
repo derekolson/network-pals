@@ -78,8 +78,10 @@ export default class Road extends SceneObject {
     return traveller;
   }
 
-  getAllDestinations(visited: Set<NetworkNode> = new Set()): NetworkNode[] {
-    return this.to.getAllDestinations(visited);
+  getAllReachableNodes(visited: Set<NetworkNode> = new Set()): NetworkNode[] {
+    const nodes = [];
+    if (visited.has(this.to)) return nodes;
+    return this.to.getAllReachableNodes(visited);
   }
 
   getPointAtPosition(position: number): Vector2 {

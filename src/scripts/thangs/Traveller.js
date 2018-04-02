@@ -7,7 +7,6 @@ import { BLUE } from '../colors';
 import { outBack, inBack } from '../easings';
 import type Road from './Road';
 import type { NetworkNode } from './interfaces';
-import Consumer from './Consumer';
 
 const TRAVELLER_COLOR = BLUE;
 const TRAVELLER_RADIUS = 7;
@@ -29,8 +28,8 @@ let i = 0;
 
 export default class Traveller extends SceneObject {
   _currentRoad: Road | null = null;
-  _positionOnCurrentRoad: number = 0;
   _destination: NetworkNode | null = null;
+  _positionOnCurrentRoad: number = 0;
   _speed: number = INITIAL_SPEED;
   _age: number = 0;
   _exitStartedAt: number | null = null;
@@ -42,6 +41,10 @@ export default class Traveller extends SceneObject {
 
   get comfortableRadius(): number {
     return TRAVELLER_SAFE_RADIUS;
+  }
+
+  get destination(): NetworkNode | null {
+    return this._destination;
   }
 
   onAddedToRoad(road: Road) {
@@ -57,6 +60,10 @@ export default class Traveller extends SceneObject {
   }
 
   onRemovedFromScene() {
+    this.removeFromCurrentRoad();
+  }
+
+  removeFromCurrentRoad() {
     if (this._currentRoad) this._currentRoad.removeTraveller(this);
   }
 
@@ -129,7 +136,9 @@ export default class Traveller extends SceneObject {
 
   _pickDestination() {
     if (!this._currentRoad) return;
-    const potentialDestinations = this._currentRoad.getAllDestinations();
+    const potentialDestinations = this._currentRoad
+      .getAllReachableNodes()
+      .filter(node => node.isDestination);
     const destination = sample(potentialDestinations);
     this._destination = destination;
   }
@@ -179,7 +188,7 @@ export default class Traveller extends SceneObject {
   _checkAtEndOfRoad(currentRoad: Road) {
     if (this._positionOnCurrentRoad === currentRoad.length) {
       if (this._isExiting) return;
-      this._onReachEndOfCurrentRoad();
+      this._onReachEndOfCurrentRoad(currentRoad);
     }
   }
 
@@ -189,12 +198,19 @@ export default class Traveller extends SceneObject {
     }
   }
 
-  _onReachEndOfCurrentRoad() {
+  _onReachEndOfCurrentRoad(currentRoad: Road) {
+    const nextNode = currentRoad.to;
     const destination = this._destination;
-    if (destination instanceof Consumer && destination.canConsumeTraveller) {
-      destination.consumeTraveller();
-      this._exit();
+    if (nextNode.canConsumeTraveller) {
+      nextNode.consumeTraveller(this);
     }
+    if (nextNode === destination) {
+      this._onReachDestination();
+    }
+  }
+
+  _onReachDestination() {
+    this._exit();
   }
 
   _onExit() {
