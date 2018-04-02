@@ -10,7 +10,8 @@ import { constrain, mapRange } from '../util';
 import { inBack, reverse, linear } from '../easings';
 import ConnectionSet from './ConnectionSet';
 import type { ConnectionDirection } from './ConnectionSet';
-import type { NetworkNode, Connectable } from './interfaces';
+import type { NetworkNode } from './interfaces';
+import type Road from './Road';
 
 const DEFAULT_COOLDOWN = 1000;
 
@@ -26,6 +27,8 @@ const CLOCK_COLOR = RED.darken(0.2);
 const PULSE_COLOR = RED.lighten(0.2).fade(0.4);
 
 export default class Consumer extends SceneObject implements NetworkNode {
+  isDestination = false;
+  isNode = true;
   _circle: Circle;
   _visualConnectionCircle: Circle;
   _cooldown: number;
@@ -51,7 +54,11 @@ export default class Consumer extends SceneObject implements NetworkNode {
     return this._visualConnectionCircle.pointOnCircumference(radians);
   }
 
-  connectTo(node: Connectable, direction: ConnectionDirection) {
+  getAllDestinations(): NetworkNode[] {
+    return [this];
+  }
+
+  connectTo(node: Road, direction: ConnectionDirection) {
     this._connectionSet.add(node, direction);
   }
 

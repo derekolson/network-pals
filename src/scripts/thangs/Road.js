@@ -1,5 +1,4 @@
 // @flow
-import invariant from 'invariant';
 import Path from '../geom/path/Path';
 import StraightPathSegment from '../geom/path/StraightPathSegment';
 import type Vector2 from '../geom/Vector2';
@@ -7,9 +6,8 @@ import SceneObject from '../render/SceneObject';
 import ShapeHelpers from '../render/ShapeHelpers';
 import { YELLOW } from '../colors';
 import ConnectionSet from './ConnectionSet';
-import type { ConnectionDirection } from './ConnectionSet';
 import Traveller from './Traveller';
-import type { NetworkNode, Connectable } from './interfaces';
+import type { NetworkNode } from './interfaces';
 
 // const ROAD_OUTER_COLOR = BLUE;
 // const ROAD_INNER_COLOR = LIGHT_BG;
@@ -20,16 +18,17 @@ const ROAD_DASH_WIDTH = 4;
 const ROAD_DIRECTION_DASH = [5, 10];
 const ROAD_DASH_SPEED = 0.05;
 
-export default class Road extends SceneObject implements Connectable {
-  _from: NetworkNode;
-  _to: NetworkNode;
+export default class Road extends SceneObject {
+  isNode = false;
+  from: NetworkNode;
+  to: NetworkNode;
   _path: Path;
   _currentTravellers: Traveller[] = [];
 
   constructor(from: NetworkNode, to: NetworkNode, path?: Path) {
     super();
-    this._from = from;
-    this._to = to;
+    this.from = from;
+    this.to = to;
 
     if (path) {
       this._path = path;
@@ -79,13 +78,8 @@ export default class Road extends SceneObject implements Connectable {
     return traveller;
   }
 
-  // eslint-disable-next-line no-unused-vars
-  connectTo(node: Connectable, direction: ConnectionDirection) {
-    invariant('Cannot call connectTo on road hmm i should refactor this');
-  }
-
-  getAllDestinations(): NetworkNode[] {
-    return [this._to];
+  getAllDestinations(visited: Set<NetworkNode> = new Set()): NetworkNode[] {
+    return this.to.getAllDestinations(visited);
   }
 
   getPointAtPosition(position: number): Vector2 {

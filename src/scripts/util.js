@@ -21,3 +21,9 @@ export const randomInt = (min: number, max: number): number =>
   Math.floor(random(min, max));
 
 export const sample = <T>(arr: T[]): T => arr[randomInt(0, arr.length)];
+
+export const flatten = <T>(arr: T[][]): T[] =>
+  arr.reduce((a, b) => a.concat(b), []);
+
+export const uniq = <T>(arr: T[]): T[] =>
+  arr.filter((item, i) => arr.indexOf(item) === i);

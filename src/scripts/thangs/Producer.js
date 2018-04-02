@@ -6,12 +6,12 @@ import SceneObject from '../render/SceneObject';
 import ShapeHelpers from '../render/ShapeHelpers';
 import { TEAL } from '../colors';
 import { outSine } from '../easings';
-import { mapRange, constrain } from '../util';
+import { mapRange, constrain, flatten, uniq } from '../util';
 import ConnectionSet from './ConnectionSet';
 import type { ConnectionDirection } from './ConnectionSet';
 import Traveller from './Traveller';
 import Road from './Road';
-import type { NetworkNode, Connectable } from './interfaces';
+import type { NetworkNode } from './interfaces';
 
 const DEFAULT_COOLDOWN = 500;
 
@@ -28,6 +28,8 @@ const CLOCK_COLOR = TEAL.darken(0.1);
 const PULSE_COLOR = TEAL.lighten(0.2).fade(0.1);
 
 export default class Producer extends SceneObject implements NetworkNode {
+  isDestination = false;
+  isNode = true;
   _circle: Circle;
   _visualConnectionCircle: Circle;
   _cooldown: number;
@@ -45,11 +47,22 @@ export default class Producer extends SceneObject implements NetworkNode {
     return this._circle.center;
   }
 
+  getAllDestinations(visited: Set<NetworkNode> = new Set()) {
+    visited.add(this);
+    return uniq(
+      flatten(
+        this._connectionSet.outgoing.map(road =>
+          road.getAllDestinations(visited),
+        ),
+      ),
+    );
+  }
+
   getVisualConnectionPointAtAngle(radians: number): Vector2 {
     return this._visualConnectionCircle.pointOnCircumference(radians);
   }
 
-  connectTo(node: Connectable, direction: ConnectionDirection) {
+  connectTo(node: Road, direction: ConnectionDirection) {
     this._connectionSet.add(node, direction);
   }
 
