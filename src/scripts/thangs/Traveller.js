@@ -14,11 +14,11 @@ const TRAVELLER_RADIUS = 7;
 const MIN_TRAVELLER_SAFE_RADIUS = 30;
 const MAX_TRAVELLER_SAFE_RADIUS = 30;
 
-const INITIAL_SPEED = 20;
-const MAX_SPEED = 100;
-const ACCELERATION = 70;
-const DECELERATION = -100;
-const ROAD_END_OVERSHOOT = 5;
+const INITIAL_SPEED = 5;
+const MAX_SPEED = 300;
+const ACCELERATION = 500;
+const DECELERATION = -500;
+const ROAD_END_OVERSHOOT = 0;
 
 const ENTER_DURATION = 400;
 const EXIT_DURATION = 400;
@@ -43,6 +43,11 @@ export default class Traveller extends SceneObject {
 
   get positionOnCurrentRoad(): number {
     return this._positionOnCurrentRoad;
+  }
+
+  get distanceToEndOfCurrentRoad(): number {
+    invariant(this._currentRoad, 'traveller is not on a road');
+    return this._currentRoad.length - this._positionOnCurrentRoad;
   }
 
   get destination(): NetworkNode | null {
@@ -156,34 +161,43 @@ export default class Traveller extends SceneObject {
   }
 
   _shouldDecelerate(currentRoad: Road): boolean {
-    const stopPosition = this._getPredictedStopPositionIfDecelerating();
+    const predictedStopPosition = this._getPredictedStopPositionIfDecelerating();
     if (
       currentRoad.to === this._destination &&
-      currentRoad.length + ROAD_END_OVERSHOOT < stopPosition
-    )
+      currentRoad.length + ROAD_END_OVERSHOOT < predictedStopPosition
+    ) {
       return true;
+    }
 
     const nextTravellerOnRoad = currentRoad.getTravellerAfterPosition(
       this._positionOnCurrentRoad,
     );
 
+    const safeStopAheadPosition =
+      predictedStopPosition + this.comfortableRadius;
+
     if (
       nextTravellerOnRoad &&
-      nextTravellerOnRoad.positionOnCurrentRoad <
-        stopPosition + this.comfortableRadius
+      nextTravellerOnRoad.positionOnCurrentRoad < safeStopAheadPosition
     ) {
       return true;
     }
 
     if (currentRoad.to instanceof Intersection) {
-      const nextTravellerAfterIntersection = currentRoad.to.getClosestOutgoingTraveller();
-      if (
-        nextTravellerAfterIntersection &&
-        currentRoad.length +
-          nextTravellerAfterIntersection.positionOnCurrentRoad <
-          stopPosition + this.comfortableRadius
-      ) {
-        return true;
+      const intersection = currentRoad.to;
+      const outgoingTraveller = intersection.getClosestOutgoingTraveller();
+      if (outgoingTraveller) {
+        const outgoingTravellerPosition =
+          currentRoad.length + outgoingTraveller.positionOnCurrentRoad;
+
+        if (outgoingTravellerPosition < safeStopAheadPosition) return true;
+      }
+
+      const incomingTraveller = intersection.getClosestIncomingTraveller();
+      if (incomingTraveller && incomingTraveller !== this) {
+        const incomingTravellerPosition =
+          currentRoad.length - incomingTraveller.distanceToEndOfCurrentRoad;
+        if (incomingTravellerPosition < safeStopAheadPosition) return true;
       }
     }
 

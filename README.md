@@ -1,12 +1,6 @@
-# web-starter
-
-Boilerplate for little web projects.
-
-* Parcel bundler
-* Jest
-* Flow
-* Eslint
-
-etc.
-
-Builds to 'docs' for hosting with gh-pages.
+* [ ] smoother dashes
+* [x] merge traffic
+* [ ] auto-rounded corners on roads
+* [ ] take traffic into account when route-finding
+* [ ] intersections have a radius and auto round themselves
+* [ ] 2-glane traffic

@@ -104,6 +104,22 @@ export default class Road extends SceneObject {
     return bestTraveller;
   }
 
+  getTravellerBeforePosition(position: number): Traveller | null {
+    let bestTraveller = null;
+    let bestDistance = Infinity;
+
+    this._currentTravellers.forEach(traveller => {
+      const distance = position - traveller.positionOnCurrentRoad;
+      if (distance <= 0) return;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestTraveller = traveller;
+      }
+    });
+
+    return bestTraveller;
+  }
+
   draw(ctx: CanvasRenderingContext2D, time: number) {
     ctx.beginPath();
     ctx.lineCap = 'round';
