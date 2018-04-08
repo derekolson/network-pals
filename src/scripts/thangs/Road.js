@@ -1,7 +1,8 @@
 // @flow
 import Path from '../geom/path/Path';
 import StraightPathSegment from '../geom/path/StraightPathSegment';
-import type Vector2 from '../geom/Vector2';
+import Vector2 from '../geom/Vector2';
+import type { Vector2ish } from '../geom/Vector2';
 import SceneObject from '../render/SceneObject';
 import ShapeHelpers from '../render/ShapeHelpers';
 import { YELLOW } from '../colors';
@@ -18,6 +19,11 @@ const ROAD_DASH_WIDTH = 4;
 const ROAD_DIRECTION_DASH = [5, 10];
 const ROAD_DASH_SPEED = 0.05;
 
+export type RoadOptions = {|
+  autoRound?: number,
+  points?: Vector2ish[],
+|};
+
 export default class Road extends SceneObject {
   isNode = false;
   from: NetworkNode;
@@ -25,13 +31,25 @@ export default class Road extends SceneObject {
   _path: Path;
   _currentTravellers: Traveller[] = [];
 
-  constructor(from: NetworkNode, to: NetworkNode, path?: Path) {
+  constructor(
+    from: NetworkNode,
+    to: NetworkNode,
+    { points, autoRound }: RoadOptions = {},
+  ) {
     super();
     this.from = from;
     this.to = to;
 
-    if (path) {
-      this._path = path;
+    if (points) {
+      const firstPathPoint = Vector2.from(points[0]);
+      const lastPathPoint = Vector2.from(points[points.length - 1]);
+      const angleFrom = from.position.angleBetween(firstPathPoint);
+      const angleTo = to.position.angleBetween(lastPathPoint);
+      this._path = Path.straightThroughPoints(
+        from.getVisualConnectionPointAtAngle(angleFrom),
+        ...points,
+        to.getVisualConnectionPointAtAngle(angleTo),
+      );
     } else {
       const angleFrom = from.position.angleBetween(to.position);
       const angleTo = to.position.angleBetween(from.position);
@@ -41,6 +59,10 @@ export default class Road extends SceneObject {
           to.getVisualConnectionPointAtAngle(angleTo),
         ),
       );
+    }
+
+    if (autoRound != null) {
+      this._path.autoRound(autoRound);
     }
 
     from.connectTo(this, ConnectionSet.OUT);

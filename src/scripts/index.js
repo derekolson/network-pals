@@ -1,20 +1,12 @@
 // @flow
 import invariant from 'invariant';
 import Scene from './render/Scene';
-import Vector2 from './geom/Vector2';
-import Path from './geom/path/Path';
-import StraightPathSegment from './geom/path/StraightPathSegment';
-import CirclePathSegment from './geom/path/CirclePathSegment';
 import Producer from './thangs/Producer';
 import Road from './thangs/Road';
 import Consumer from './thangs/Consumer';
 import Intersection from './thangs/Intersection';
 
-const scene = new Scene(800, 600, window.devicePixelRatio);
-window.scene = scene;
-const root = document.getElementById('root');
-invariant(root, '#root must be present');
-scene.appendTo(root);
+let scene;
 
 const scenario1 = () => {
   const producer1 = new Producer(100, 100, 500);
@@ -29,25 +21,13 @@ const scenario1 = () => {
   const intersection1 = new Intersection(230, 100);
   scene.addChild(new Road(producer1, intersection1));
   scene.addChild(
-    new Road(
-      intersection1,
-      consumer1,
-      new Path().addSegments(
-        new StraightPathSegment(new Vector2(230, 100), new Vector2(380, 100)),
-        new CirclePathSegment(new Vector2(380, 120), 20, Math.PI * -0.5, 0),
-        new StraightPathSegment(new Vector2(400, 120), new Vector2(400, 170)),
-      ),
-    ),
+    new Road(intersection1, consumer1, { points: [[400, 100]], autoRound: 50 }),
   );
   scene.addChild(
-    new Road(
-      intersection1,
-      consumer2,
-      new Path().addSegments(
-        new CirclePathSegment(new Vector2(230, 120), 20, Math.PI * -0.5, 0),
-        new StraightPathSegment(new Vector2(250, 120), new Vector2(250, 170)),
-      ),
-    ),
+    new Road(intersection1, consumer2, {
+      points: [[250, 100]],
+      autoRound: 50,
+    }),
   );
   // const path2 = new Path();
   // path2.addSegments(
@@ -93,19 +73,10 @@ const scenario3 = () => {
   const eastProducerSplit = new Intersection(400, 150);
   scene.addChild(new Road(eastProducer, eastProducerSplit));
   scene.addChild(
-    new Road(
-      eastProducerSplit,
-      mainIntersection,
-      Path.straightThroughPoints(
-        eastProducerSplit.position,
-        [400, 120],
-        [500, 150],
-        [450, 80],
-        [350, 100],
-        [350, 20],
-        mainIntersection.position,
-      ).autoRound(50),
-    ),
+    new Road(eastProducerSplit, mainIntersection, {
+      points: [[400, 120], [500, 150], [450, 80], [350, 100], [300, 20]],
+      autoRound: 50,
+    }),
   );
   // scene.addChild(
   //   new Road(
@@ -124,9 +95,20 @@ const scenario3 = () => {
   scene.addChild(new Road(mainIntersection, southConsumer));
 };
 
-scenario3();
+const go = () => {
+  if (window.scene) return;
+  scene = new Scene(800, 600, window.devicePixelRatio);
+  window.scene = scene;
+  const root = document.getElementById('root');
+  invariant(root, '#root must be present');
+  scene.appendTo(root);
 
-scene.start();
+  scenario3();
+
+  scene.start();
+};
+
+go();
 
 // auto-refresh in dev mode
 // $FlowFixMe - this isn't included in flow's module typedef
