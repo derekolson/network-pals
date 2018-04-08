@@ -13,16 +13,17 @@ import type { NetworkNode } from './interfaces';
 
 // const ROAD_OUTER_COLOR = BLUE;
 // const ROAD_INNER_COLOR = LIGHT_BG;
-const ROAD_DASH_COLOR = YELLOW.lighten(0.1);
+const ROAD_DASH_COLOR = YELLOW.darken(0.2);
 // const ROAD_OUTER_WIDTH = 12;
 // const ROAD_INNER_WIDTH = 13;
-const ROAD_DASH_WIDTH = 4;
+const ROAD_DASH_WIDTH = 2;
 const ROAD_DIRECTION_DASH = [5, 10];
 const ROAD_DASH_SPEED = 0.05;
 
 export type RoadOptions = {|
   autoRound?: number,
   points?: Vector2ish[],
+  path?: Path,
 |};
 
 export default class Road extends SceneObject {
@@ -35,7 +36,7 @@ export default class Road extends SceneObject {
   constructor(
     from: NetworkNode | Junction,
     to: NetworkNode | Junction,
-    { points, autoRound }: RoadOptions = {},
+    { points, autoRound, path }: RoadOptions = {},
   ) {
     super();
 
@@ -47,7 +48,9 @@ export default class Road extends SceneObject {
       ? to.position.angleBetween(Vector2.from(points[points.length - 1]))
       : to.position.angleBetween(from.position);
 
-    if (points) {
+    if (path) {
+      this._path = path;
+    } else if (points) {
       this._path = Path.straightThroughPoints(
         from.getVisualConnectionPointAtAngle(angleFrom),
         ...points,

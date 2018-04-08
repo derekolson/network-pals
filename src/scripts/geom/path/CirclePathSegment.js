@@ -3,8 +3,50 @@ import { constrain, mapRange } from '../../util';
 import Vector2 from '../Vector2';
 import Circle from '../Circle';
 import type { PathSegment } from './Path';
+import StraightPathSegment from './StraightPathSegment';
+import Line2 from '../Line2';
 
 export default class CirclePathSegment implements PathSegment {
+  static withinCircle(
+    containingCircle: Circle,
+    entryAngle: number,
+    exitAngle: number,
+  ): CirclePathSegment | StraightPathSegment {
+    entryAngle = entryAngle + Math.PI;
+    const entryPoint = containingCircle.pointOnCircumference(entryAngle);
+    const exitPoint = containingCircle.pointOnCircumference(exitAngle);
+
+    const entryLineNormal = new Line2(
+      containingCircle.center,
+      entryPoint,
+    ).perpendicularLineThroughPoint(entryPoint);
+    const exitLineNormal = new Line2(
+      containingCircle.center,
+      exitPoint,
+    ).perpendicularLineThroughPoint(exitPoint);
+
+    if (entryLineNormal.isPerpendicularTo(exitLineNormal)) {
+      return new StraightPathSegment(entryPoint, exitPoint);
+    }
+
+    const roadCircleCenter = entryLineNormal.pointAtIntersectionWith(
+      exitLineNormal,
+    );
+    const roadCircleRadius = entryPoint.distanceTo(roadCircleCenter);
+
+    // containingCircle.center.debugDraw('lime');
+    // roadCircleCenter.debugDraw('blue');
+    // entryPoint.debugDraw('magenta');
+    // exitPoint.debugDraw('red');
+
+    return new CirclePathSegment(
+      roadCircleCenter,
+      roadCircleRadius,
+      entryPoint.subtract(roadCircleCenter).angle,
+      exitPoint.subtract(roadCircleCenter).angle,
+    );
+  }
+
   circle: Circle;
   startAngle: number;
   endAngle: number;

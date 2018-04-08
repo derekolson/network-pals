@@ -59,11 +59,26 @@ export default class Junction extends SceneObject {
       if (other === intersection) return;
 
       if (isIncoming && this._outgoingIntersections.has(other)) {
-        this._addRoad(new Road(intersection, other));
+        const path = new Path(
+          CirclePathSegment.withinCircle(
+            this._circle,
+            this._circle.center.subtract(intersection.position).angle,
+            other.position.subtract(this._circle.center).angle,
+          ),
+        );
+
+        this._addRoad(new Road(intersection, other, { path }));
       }
 
       if (isOutgoing && this._incomingIntersections.has(other)) {
-        this._addRoad(new Road(other, intersection));
+        const path = new Path(
+          CirclePathSegment.withinCircle(
+            this._circle,
+            this._circle.center.subtract(other.position).angle,
+            intersection.position.subtract(this._circle.center).angle,
+          ),
+        );
+        this._addRoad(new Road(other, intersection, { path }));
       }
     });
 

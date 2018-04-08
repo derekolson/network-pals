@@ -30,6 +30,10 @@ export default class Path implements PathSegment {
 
   segments: PathSegment[] = [];
 
+  constructor(...segments: PathSegment[]) {
+    this.addSegments(...segments);
+  }
+
   get start(): Vector2 {
     return this.segments[0].start;
   }
@@ -87,7 +91,7 @@ export default class Path implements PathSegment {
 
       invariant(lastSegment.end.equals(segment.start), 'segments must join');
 
-      const entryAngle = lastSegment.angle + Math.PI;
+      const entryAngle = lastSegment.angle;
       const exitAngle = segment.angle;
       const usableRadius = Math.min(
         radius,
@@ -100,36 +104,11 @@ export default class Path implements PathSegment {
         segment.start.y,
         usableRadius,
       );
-      const entryPoint = containingCircle.pointOnCircumference(entryAngle);
-      const exitPoint = containingCircle.pointOnCircumference(exitAngle);
-      const entryLineNormal = new Line2(
-        containingCircle.center,
-        entryPoint,
-      ).perpendicularLineThroughPoint(entryPoint);
-      const exitLineNormal = new Line2(
-        containingCircle.center,
-        exitPoint,
-      ).perpendicularLineThroughPoint(exitPoint);
 
-      if (entryLineNormal.isPerpendicularTo(exitLineNormal)) {
-        return new StraightPathSegment(entryPoint, exitPoint);
-      }
-
-      const roadCircleCenter = entryLineNormal.pointAtIntersectionWith(
-        exitLineNormal,
-      );
-      const roadCircleRadius = entryPoint.distanceTo(roadCircleCenter);
-
-      // containingCircle.center.debugDraw('lime');
-      // roadCircleCenter.debugDraw('blue');
-      // entryPoint.debugDraw('magenta');
-      // exitPoint.debugDraw('red');
-
-      return new CirclePathSegment(
-        roadCircleCenter,
-        roadCircleRadius,
-        entryPoint.subtract(roadCircleCenter).angle,
-        exitPoint.subtract(roadCircleCenter).angle,
+      return CirclePathSegment.withinCircle(
+        containingCircle,
+        entryAngle,
+        exitAngle,
       );
     });
 
