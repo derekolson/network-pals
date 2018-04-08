@@ -18,6 +18,7 @@ export default class CirclePathSegment implements PathSegment {
     this.circle = new Circle(center.x, center.y, radius);
     this.startAngle = startAngle;
     this.endAngle = endAngle;
+    Object.freeze(this);
   }
 
   get start(): Vector2 {
@@ -49,7 +50,7 @@ export default class CirclePathSegment implements PathSegment {
       0,
       this.length,
       this.startAngle,
-      this.endAngle,
+      this.startAngle + this.angleDifference,
       constrain(0, this.length, position),
     );
     return this.circle.pointOnCircumference(angle);

@@ -104,7 +104,7 @@ const scenario3 = () => {
         [350, 100],
         [350, 20],
         mainIntersection.position,
-      ).autoRound(20),
+      ).autoRound(50),
     ),
   );
   // scene.addChild(
@@ -132,7 +132,10 @@ scene.start();
 // $FlowFixMe - this isn't included in flow's module typedef
 if (module.hot) {
   module.hot.dispose(() => {
-    scene.stop();
-    root.removeChild(scene._canvas);
+    window.location.reload();
+  });
+  // $FlowFixMe
+  module.hot.accept(() => {
+    window.location.reload();
   });
 }
