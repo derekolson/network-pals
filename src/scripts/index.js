@@ -5,6 +5,7 @@ import Producer from './thangs/Producer';
 import Road from './thangs/Road';
 import Consumer from './thangs/Consumer';
 import Intersection from './thangs/Intersection';
+import Junction from './thangs/Junction';
 
 let scene;
 
@@ -18,17 +19,12 @@ const scenario1 = () => {
   scene.addChild(consumer1);
   scene.addChild(consumer2);
 
-  const intersection1 = new Intersection(230, 100);
-  scene.addChild(new Road(producer1, intersection1));
-  scene.addChild(
-    new Road(intersection1, consumer1, { points: [[400, 100]], autoRound: 50 }),
-  );
-  scene.addChild(
-    new Road(intersection1, consumer2, {
-      points: [[250, 100]],
-      autoRound: 50,
-    }),
-  );
+  const junction1 = new Junction(250, 100, 20);
+  scene.addChild(junction1);
+  scene.addChild(new Road(producer1, junction1));
+  scene.addChild(new Road(junction1, consumer1, { points: [[400, 100]] }));
+  scene.addChild(new Road(junction1, consumer2));
+
   // const path2 = new Path();
   // path2.addSegments(
   //   new StraightPathSegment(new Vector2(130, 300), new Vector2(380, 300)),
@@ -103,7 +99,7 @@ const go = () => {
   invariant(root, '#root must be present');
   scene.appendTo(root);
 
-  scenario3();
+  scenario1();
 
   scene.start();
 };

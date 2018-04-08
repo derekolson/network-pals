@@ -7,6 +7,7 @@ import SceneObject from '../render/SceneObject';
 import ShapeHelpers from '../render/ShapeHelpers';
 import { YELLOW } from '../colors';
 import ConnectionSet from './ConnectionSet';
+import Junction from './Junction';
 import Traveller from './Traveller';
 import type { NetworkNode } from './interfaces';
 
@@ -32,27 +33,27 @@ export default class Road extends SceneObject {
   _currentTravellers: Traveller[] = [];
 
   constructor(
-    from: NetworkNode,
-    to: NetworkNode,
+    from: NetworkNode | Junction,
+    to: NetworkNode | Junction,
     { points, autoRound }: RoadOptions = {},
   ) {
     super();
-    this.from = from;
-    this.to = to;
+
+    const angleFrom = points
+      ? from.position.angleBetween(Vector2.from(points[0]))
+      : from.position.angleBetween(to.position);
+
+    const angleTo = points
+      ? to.position.angleBetween(Vector2.from(points[points.length - 1]))
+      : to.position.angleBetween(from.position);
 
     if (points) {
-      const firstPathPoint = Vector2.from(points[0]);
-      const lastPathPoint = Vector2.from(points[points.length - 1]);
-      const angleFrom = from.position.angleBetween(firstPathPoint);
-      const angleTo = to.position.angleBetween(lastPathPoint);
       this._path = Path.straightThroughPoints(
         from.getVisualConnectionPointAtAngle(angleFrom),
         ...points,
         to.getVisualConnectionPointAtAngle(angleTo),
       );
     } else {
-      const angleFrom = from.position.angleBetween(to.position);
-      const angleTo = to.position.angleBetween(from.position);
       this._path = new Path().addSegment(
         new StraightPathSegment(
           from.getVisualConnectionPointAtAngle(angleFrom),
@@ -65,8 +66,19 @@ export default class Road extends SceneObject {
       this._path.autoRound(autoRound);
     }
 
-    from.connectTo(this, ConnectionSet.OUT);
-    to.connectTo(this, ConnectionSet.IN);
+    if (from instanceof Junction) {
+      this.from = from.connectToRoadAtAngle(this, angleFrom, ConnectionSet.OUT);
+    } else {
+      this.from = from;
+      from.connectTo(this, ConnectionSet.OUT);
+    }
+
+    if (to instanceof Junction) {
+      this.to = to.connectToRoadAtAngle(this, angleTo, ConnectionSet.IN);
+    } else {
+      this.to = to;
+      to.connectTo(this, ConnectionSet.IN);
+    }
   }
 
   get length(): number {
