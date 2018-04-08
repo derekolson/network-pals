@@ -27,3 +27,7 @@ export const flatten = <T>(arr: T[][]): T[] =>
 
 export const uniq = <T>(arr: T[]): T[] =>
   arr.filter((item, i) => arr.indexOf(item) === i);
+
+export const compact = <T>(arr: (?T)[]): T[] =>
+  // $FlowFixMe
+  arr.filter(item => item != null);

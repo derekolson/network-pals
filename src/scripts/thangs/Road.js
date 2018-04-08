@@ -81,7 +81,7 @@ export default class Road extends SceneObject {
   getAllReachableNodes(visited: Set<NetworkNode> = new Set()): NetworkNode[] {
     const nodes = [];
     if (visited.has(this.to)) return nodes;
-    return this.to.getAllReachableNodes(visited);
+    return [...this.to.getAllReachableNodes(visited), this.to];
   }
 
   getPointAtPosition(position: number): Vector2 {
@@ -123,6 +123,7 @@ export default class Road extends SceneObject {
   draw(ctx: CanvasRenderingContext2D, time: number) {
     ctx.beginPath();
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ShapeHelpers.path(ctx, this._path);
 
     // ctx.strokeStyle = ROAD_OUTER_COLOR.toString();
@@ -137,6 +138,8 @@ export default class Road extends SceneObject {
     ctx.strokeStyle = ROAD_DASH_COLOR.toString();
     ctx.lineDashOffset = -time * ROAD_DASH_SPEED;
     ctx.lineWidth = ROAD_DASH_WIDTH;
+    // ctx.strokeStyle = 'black';
+    // ctx.lineWidth = 1;
     ctx.stroke();
   }
 }

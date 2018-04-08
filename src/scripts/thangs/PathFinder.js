@@ -44,13 +44,13 @@ const PathFinder = {
     let bestDist = Infinity;
     let bestNode = null;
 
-    for (const node of nodes) {
+    nodes.forEach(node => {
       const distance = distances.get(node);
       if (distance != null && distance < bestDist) {
         bestDist = distance;
         bestNode = node;
       }
-    }
+    });
 
     invariant(bestNode, 'node must be found');
     return { node: bestNode, distance: bestDist };
@@ -61,15 +61,15 @@ const PathFinder = {
     distance: number,
     prevRoads: Map<NetworkNode, Road>,
   ) {
-    for (const road of node.outgoingConnections) {
+    node.outgoingConnections.forEach(road => {
       const nextNode = road.to;
       const nextNodeDist = bestDistances.get(nextNode);
       const altNextNodeDist = distance + road.length;
-      if (nextNodeDist == null || nextNodeDist < altNextNodeDist) {
+      if (nextNodeDist == null || altNextNodeDist < nextNodeDist) {
         bestDistances.set(nextNode, altNextNodeDist);
         prevRoads.set(nextNode, road);
       }
-    }
+    });
   },
   _nextRoadFromRoute(
     prevRoads: Map<NetworkNode, Road>,

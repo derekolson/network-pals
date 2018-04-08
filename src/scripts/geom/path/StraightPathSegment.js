@@ -1,26 +1,39 @@
 // @flow
 import { constrain } from '../../util';
 import Vector2 from '../Vector2';
+import Line2 from '../Line2';
 import type { PathSegment } from './Path';
 
 export default class StraightPathSegment implements PathSegment {
-  start: Vector2;
-  end: Vector2;
-  _difference: Vector2;
+  line: Line2;
 
   constructor(start: Vector2, end: Vector2) {
-    this.start = start;
-    this.end = end;
-    this._difference = end.subtract(start);
+    this.line = new Line2(start, end);
     Object.freeze(this);
   }
 
+  get start(): Vector2 {
+    return this.line.start;
+  }
+
+  get end(): Vector2 {
+    return this.line.end;
+  }
+
+  get delta(): Vector2 {
+    return this.end.subtract(this.start);
+  }
+
   get length(): number {
-    return this._difference.magnitude;
+    return this.delta.magnitude;
+  }
+
+  get angle(): number {
+    return this.delta.angle;
   }
 
   getPointAtPosition(position: number): Vector2 {
     const constrainedPosition = constrain(0, this.length, position);
-    return this._difference.withMagnitude(constrainedPosition).add(this.start);
+    return this.delta.withMagnitude(constrainedPosition).add(this.start);
   }
 }

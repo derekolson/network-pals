@@ -5,6 +5,8 @@ import type SceneObject from './SceneObject';
 export default class Scene {
   _canvas: HTMLCanvasElement;
   _ctx: CanvasRenderingContext2D;
+  _debugCanvas: HTMLCanvasElement | null = null;
+  _debugCtx: CanvasRenderingContext2D | null = null;
   _scaleFactor: number;
   _children: SceneObject[] = [];
   _isPlaying: boolean = false;
@@ -41,6 +43,29 @@ export default class Scene {
       'cannot set isPlaying without calling start',
     );
     this._isPlaying = newValue;
+  }
+
+  get hasDebugCanvas(): boolean {
+    return this._debugCanvas !== null;
+  }
+
+  get debugCanvas(): HTMLCanvasElement {
+    if (!this._debugCanvas) {
+      const canvas = document.createElement('canvas');
+      canvas.width = this.width;
+      canvas.height = this.height;
+      this._debugCanvas = canvas;
+    }
+
+    return this._debugCanvas;
+  }
+
+  get debugContext(): CanvasRenderingContext2D {
+    if (!this._debugCtx) {
+      this._debugCtx = this.debugCanvas.getContext('2d');
+    }
+
+    return this._debugCtx;
   }
 
   appendTo(element: HTMLElement) {
@@ -91,6 +116,12 @@ export default class Scene {
     this._ctx.save();
     this._ctx.scale(this._scaleFactor, this._scaleFactor);
     this._children.forEach(child => child.draw(this._ctx, elapsedTime));
+
+    if (this.hasDebugCanvas) {
+      const debugCanvas = this.debugCanvas;
+      this._ctx.drawImage(debugCanvas, 0, 0);
+    }
+
     this._ctx.restore();
   }
 

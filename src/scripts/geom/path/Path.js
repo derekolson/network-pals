@@ -1,6 +1,12 @@
 // @flow
+import invariant from 'invariant';
+import { constrain, compact } from '../../util';
+import Circle from '../Circle';
 import Vector2 from '../Vector2';
-import { constrain } from '../../util';
+import type { Vector2ish } from '../Vector2';
+import Line2 from '../Line2';
+import StraightPathSegment from './StraightPathSegment';
+import CirclePathSegment from './CirclePathSegment';
 
 export interface PathSegment {
   +start: Vector2;
@@ -10,6 +16,18 @@ export interface PathSegment {
 }
 
 export default class Path implements PathSegment {
+  static straightThroughPoints(...points: Vector2ish[]): Path {
+    let lastPoint = Vector2.from(points.shift());
+    const path = new Path();
+
+    points.map(Vector2.from).forEach(point => {
+      path.addSegment(new StraightPathSegment(lastPoint, point));
+      lastPoint = point;
+    });
+
+    return path;
+  }
+
   segments: PathSegment[] = [];
 
   get start(): Vector2 {
@@ -40,12 +58,108 @@ export default class Path implements PathSegment {
   }
 
   addSegment(segment: PathSegment): this {
+    const lastSegment = this.segments[this.segments.length - 1];
+    if (lastSegment) {
+      invariant(
+        lastSegment.end.equals(segment.start),
+        `segments must neatly join together - ${lastSegment.end.toString()} !== ${segment.start.toString()}`,
+      );
+    }
     this.segments.push(segment);
     return this;
   }
 
   addSegments(...segments: PathSegment[]): this {
     segments.forEach(segment => this.addSegment(segment));
+    return this;
+  }
+
+  autoRound(radius: number): this {
+    const newSegments = this.segments.map((segment, i): PathSegment | null => {
+      const lastSegment = i === 0 ? null : this.segments[i - 1];
+      if (!lastSegment) {
+        if (segment instanceof StraightPathSegment) return null;
+        return segment;
+      }
+
+      if (!(segment instanceof StraightPathSegment)) return segment;
+      if (!(lastSegment instanceof StraightPathSegment)) return null;
+
+      invariant(lastSegment.end.equals(segment.start), 'segments must join');
+
+      const entryAngle = lastSegment.angle + Math.PI;
+      const exitAngle = segment.angle;
+      const usableRadius = Math.min(
+        radius,
+        lastSegment.length / 2,
+        segment.length / 2,
+      );
+
+      const containingCircle = new Circle(
+        segment.start.x,
+        segment.start.y,
+        usableRadius,
+      );
+      const entryPoint = containingCircle.pointOnCircumference(entryAngle);
+      const exitPoint = containingCircle.pointOnCircumference(exitAngle);
+      const entryLineNormal = new Line2(
+        containingCircle.center,
+        entryPoint,
+      ).perpendicularLineThroughPoint(entryPoint);
+      const exitLineNormal = new Line2(
+        containingCircle.center,
+        exitPoint,
+      ).perpendicularLineThroughPoint(exitPoint);
+
+      if (entryLineNormal.isPerpendicularTo(exitLineNormal)) {
+        return new StraightPathSegment(entryPoint, exitPoint);
+      }
+
+      const roadCircleCenter = entryLineNormal.pointAtIntersectionWith(
+        exitLineNormal,
+      );
+      const roadCircleRadius = entryPoint.distanceTo(roadCircleCenter);
+
+      // containingCircle.center.debugDraw('lime');
+      // roadCircleCenter.debugDraw('blue');
+      // entryPoint.debugDraw('magenta');
+      // exitPoint.debugDraw('red');
+
+      return new CirclePathSegment(
+        roadCircleCenter,
+        roadCircleRadius,
+        entryPoint.subtract(roadCircleCenter).angle,
+        exitPoint.subtract(roadCircleCenter).angle,
+      );
+    });
+
+    const compacted = compact(newSegments);
+
+    const start = this.start;
+    const end = this.end;
+    let lastPoint = start;
+    this.segments = [];
+
+    compacted.forEach(segment => {
+      if (segment.start.equals(lastPoint)) {
+        this.addSegment(segment);
+      } else {
+        this.addSegment(new StraightPathSegment(lastPoint, segment.start));
+        this.addSegment(segment);
+      }
+
+      lastPoint = segment.end;
+    });
+
+    if (!lastPoint.equals(end)) {
+      this.addSegment(new StraightPathSegment(lastPoint, end));
+    }
+
+    return this;
+  }
+
+  freeze(): this {
+    Object.freeze(this);
     return this;
   }
 }
