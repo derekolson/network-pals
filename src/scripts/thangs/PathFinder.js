@@ -11,15 +11,15 @@ const PathFinder = {
       remainingNodes.has(destinationNode),
       'destination must be reachable',
     );
-    const bestDistances = new Map();
+    const bestCosts = new Map();
     const prevRoads = new Map();
 
-    bestDistances.set(initialNode, 0);
+    bestCosts.set(initialNode, 0);
 
     while (remainingNodes.size) {
-      const { node, distance } = PathFinder._nodeWithShortestDistance(
+      const { node, cost } = PathFinder._nodeWithShortestDistance(
         remainingNodes,
-        bestDistances,
+        bestCosts,
       );
       remainingNodes.delete(node);
 
@@ -31,7 +31,7 @@ const PathFinder = {
         );
       }
 
-      PathFinder._updateNeighbours(node, bestDistances, distance, prevRoads);
+      PathFinder._updateNeighbours(node, bestCosts, cost, prevRoads);
     }
 
     throw new Error('unreachable i hope');
@@ -39,34 +39,34 @@ const PathFinder = {
 
   _nodeWithShortestDistance(
     nodes: Set<NetworkNode>,
-    distances: Map<NetworkNode, ?number>,
-  ): { node: NetworkNode, distance: number } {
-    let bestDist = Infinity;
+    costs: Map<NetworkNode, ?number>,
+  ): { node: NetworkNode, cost: number } {
+    let bestCost = Infinity;
     let bestNode = null;
 
     nodes.forEach(node => {
-      const distance = distances.get(node);
-      if (distance != null && distance < bestDist) {
-        bestDist = distance;
+      const cost = costs.get(node);
+      if (cost != null && cost <= bestCost) {
+        bestCost = cost;
         bestNode = node;
       }
     });
 
     invariant(bestNode, 'node must be found');
-    return { node: bestNode, distance: bestDist };
+    return { node: bestNode, cost: bestCost };
   },
   _updateNeighbours(
     node: NetworkNode,
-    bestDistances: Map<NetworkNode, ?number>,
-    distance: number,
+    bestCosts: Map<NetworkNode, ?number>,
+    cost: number,
     prevRoads: Map<NetworkNode, Road>,
   ) {
     node.outgoingConnections.forEach(road => {
       const nextNode = road.to;
-      const nextNodeDist = bestDistances.get(nextNode);
-      const altNextNodeDist = distance + road.length;
-      if (nextNodeDist == null || altNextNodeDist < nextNodeDist) {
-        bestDistances.set(nextNode, altNextNodeDist);
+      const nextNodeCost = bestCosts.get(nextNode);
+      const altNextNodeCost = cost + road.expectedTimeFromStartToEnd;
+      if (nextNodeCost == null || altNextNodeCost <= nextNodeCost) {
+        bestCosts.set(nextNode, altNextNodeCost);
         prevRoads.set(nextNode, road);
       }
     });

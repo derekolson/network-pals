@@ -10,8 +10,8 @@ const getNextCount = (name: string): string => {
 };
 
 export default class SceneObject {
+  id: string = getNextCount(this.constructor.name);
   _scene: Scene | null = null;
-  _sceneObjectName: string = getNextCount(this.constructor.name);
 
   getScene(): Scene {
     invariant(this._scene, 'scene must be present');

@@ -1,7 +1,7 @@
-* [ ] smoother dashes
+* [x] smoother dashes
 * [x] merge traffic
 * [x] auto-rounded corners on roads
-* [ ] take traffic into account when route-finding
+* [x] take traffic into account when route-finding
 * [x] intersections have a radius and auto round themselves
   * [ ] bug with straight lines in intersections
 * [ ] 2-lane traffic

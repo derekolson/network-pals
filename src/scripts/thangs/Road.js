@@ -89,6 +89,19 @@ export default class Road extends SceneObject {
     return this._path.length;
   }
 
+  get expectedTimeFromStartToEnd(): number {
+    if (this._currentTravellers.length) {
+      const avgSpeed =
+        this._currentTravellers.reduce(
+          (sum, traveller) => sum + traveller.speed,
+          0,
+        ) / this._currentTravellers.length;
+      return this.length / avgSpeed;
+    }
+
+    return this.length / (Traveller.MAX_SPEED * 0.7);
+  }
+
   canAddTravellerAtStart(): boolean {
     const nextTraveller = this.getTravellerAfterPosition(0);
     if (!nextTraveller) return true;

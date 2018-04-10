@@ -29,6 +29,8 @@ const exitEase = inBack(3);
 let i = 0;
 
 export default class Traveller extends SceneObject {
+  static MAX_SPEED = MAX_SPEED;
+
   comfortableRadius = random(
     MIN_TRAVELLER_SAFE_RADIUS,
     MAX_TRAVELLER_SAFE_RADIUS,
@@ -52,6 +54,10 @@ export default class Traveller extends SceneObject {
 
   get destination(): NetworkNode | null {
     return this._destination;
+  }
+
+  get speed(): number {
+    return this._speed;
   }
 
   onAddedToRoad(road: Road) {

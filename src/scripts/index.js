@@ -59,10 +59,10 @@ const scenario2 = () => {
 };
 
 const scenario3 = () => {
-  const northConsumer = new Consumer(100, 50, 100);
-  const middleConsumer = new Consumer(100, 100, 100);
-  const southConsumer = new Consumer(100, 150, 100);
-  const eastProducer = new Consumer(400, 250, 100);
+  const northConsumer = new Consumer(100, 50, 1500);
+  const middleConsumer = new Consumer(100, 100, 1500);
+  const southConsumer = new Consumer(100, 150, 1500);
+  const eastProducer = new Producer(400, 250, 500);
   // const westProducer = new Producer(250, 250, 100);
 
   scene.addChild(northConsumer);
@@ -72,27 +72,23 @@ const scenario3 = () => {
   // scene.addChild(westProducer);
 
   const mainJunction = new Junction(230, 100, ROUND);
-  const eastProducerSplit = new Intersection(400, 150);
+  const eastProducerSplit = new Junction(400, 170, ROUND);
   scene.addChild(mainJunction);
-  // scene.addChild(eastProducerSplit);
+  scene.addChild(eastProducerSplit);
   scene.addChild(new Road(eastProducer, eastProducerSplit));
   scene.addChild(
     new Road(eastProducerSplit, mainJunction, {
-      // points: [[400, 120], [500, 150], [450, 80], [350, 100], [300, 20]],
-      points: [[400, 101]],
+      points: [[400, 120], [500, 150], [450, 80], [350, 100], [300, 20]],
+      // points: [[400, 101]],
       autoRound: 50,
     }),
   );
-  // scene.addChild(
-  //   new Road(
-  //     eastProducerSplit,
-  //     mainIntersection,
-  //     Path.straightThroughPoints(
-  //       eastProducerSplit.position,
-  //       mainIntersection.position,
-  //     ),
-  //   ),
-  // );
+  scene.addChild(
+    new Road(eastProducerSplit, mainJunction, {
+      points: [[230, 170]],
+      autoRound: ROUND,
+    }),
+  );
 
   // scene.addChild(new Road(westProducer, mainJunction));
   scene.addChild(new Road(mainJunction, northConsumer));
