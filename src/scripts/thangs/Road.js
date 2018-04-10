@@ -16,8 +16,9 @@ import type { NetworkNode } from './interfaces';
 const ROAD_DASH_COLOR = YELLOW.darken(0.2);
 // const ROAD_OUTER_WIDTH = 12;
 // const ROAD_INNER_WIDTH = 13;
-const ROAD_DASH_WIDTH = 2;
-const ROAD_DIRECTION_DASH = [5, 10];
+const ROAD_DASH_WIDTH = 3;
+const ROAD_IDEAL_DASH = [5, 10];
+const ROAD_IDEAL_DASH_LENGTH = ROAD_IDEAL_DASH.reduce((a, b) => a + b, 0);
 const ROAD_DASH_SPEED = 0.05;
 
 export type RoadOptions = {|
@@ -171,12 +172,30 @@ export default class Road extends SceneObject {
     // ctx.lineWidth = ROAD_INNER_WIDTH;
     // ctx.stroke();
 
-    ctx.setLineDash(ROAD_DIRECTION_DASH);
+    const dashScale = this._getLineDashScale();
+    const dashLength = ROAD_IDEAL_DASH_LENGTH * dashScale;
+    ctx.setLineDash(ROAD_IDEAL_DASH.map(length => length * dashScale));
     ctx.strokeStyle = ROAD_DASH_COLOR.toString();
-    ctx.lineDashOffset = -time * ROAD_DASH_SPEED;
+    ctx.lineDashOffset = (-time * ROAD_DASH_SPEED * dashScale) % dashLength;
     ctx.lineWidth = ROAD_DASH_WIDTH;
     // ctx.strokeStyle = 'black';
     // ctx.lineWidth = 1;
     ctx.stroke();
+  }
+
+  _getLineDashScale(): number {
+    const wholeDashCount = Math.floor(this.length / ROAD_IDEAL_DASH_LENGTH);
+    const wholeDashLength = wholeDashCount * ROAD_IDEAL_DASH_LENGTH;
+
+    const roundDownLength = this.length - wholeDashLength;
+    const roundUpLength =
+      wholeDashLength + ROAD_IDEAL_DASH_LENGTH - this.length;
+
+    const dashScale =
+      roundDownLength < roundUpLength
+        ? this.length / wholeDashLength
+        : this.length / (wholeDashLength + ROAD_IDEAL_DASH_LENGTH);
+
+    return dashScale;
   }
 }

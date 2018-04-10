@@ -62,7 +62,7 @@ const scenario3 = () => {
   const northConsumer = new Consumer(100, 50, 100);
   const middleConsumer = new Consumer(100, 100, 100);
   const southConsumer = new Consumer(100, 150, 100);
-  const eastProducer = new Producer(400, 250, 100);
+  const eastProducer = new Consumer(400, 250, 100);
   // const westProducer = new Producer(250, 250, 100);
 
   scene.addChild(northConsumer);

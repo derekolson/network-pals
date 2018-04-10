@@ -2,8 +2,16 @@
 import invariant from 'invariant';
 import type Scene from './Scene';
 
+const constructorIdCounts = {};
+
+const getNextCount = (name: string): string => {
+  if (!constructorIdCounts[name]) constructorIdCounts[name] = 0;
+  return `${name}@${constructorIdCounts[name]++}`;
+};
+
 export default class SceneObject {
   _scene: Scene | null = null;
+  _sceneObjectName: string = getNextCount(this.constructor.name);
 
   getScene(): Scene {
     invariant(this._scene, 'scene must be present');
