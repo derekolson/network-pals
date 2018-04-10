@@ -79,7 +79,7 @@ const scenario3 = () => {
   scene.addChild(
     new Road(eastProducerSplit, mainJunction, {
       points: [[400, 120], [500, 150], [450, 80], [350, 100], [300, 20]],
-      // points: [[400, 101]],
+      // points: [[400, 100]],
       autoRound: 50,
     }),
   );

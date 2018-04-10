@@ -7,6 +7,7 @@ import { BLUE } from '../colors';
 import { outBack, inBack } from '../easings';
 import type Road from './Road';
 import type { NetworkNode } from './interfaces';
+import type Vector2 from '../geom/Vector2';
 import Intersection from './Intersection';
 
 const TRAVELLER_COLOR = BLUE.fade(0.4);
@@ -43,6 +44,10 @@ export default class Traveller extends SceneObject {
   _exitStartedAt: number | null = null;
   i = i++;
 
+  get position(): Vector2 {
+    invariant(this._currentRoad, 'currentRoad must be defined');
+    return this._currentRoad.getPointAtPosition(this._positionOnCurrentRoad);
+  }
   get positionOnCurrentRoad(): number {
     return this._positionOnCurrentRoad;
   }
@@ -95,10 +100,7 @@ export default class Traveller extends SceneObject {
     const currentRoad = this._currentRoad;
     invariant(currentRoad, 'current road must be defined');
 
-    const position = currentRoad.getPointAtPosition(
-      this._positionOnCurrentRoad,
-    );
-
+    const position = this.position;
     const scale =
       this._getEnterTransitionScale() * this._getExitTransitionScale();
 

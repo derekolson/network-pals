@@ -1,6 +1,10 @@
 // @flow
 import invariant from 'invariant';
 import type SceneObject from './SceneObject';
+import QuadTree from '../lib/QuadTree';
+import Traveller from '../thangs/Traveller';
+import Producer from '../thangs/Producer';
+import Rect from '../geom/Rect';
 
 export default class Scene {
   _canvas: HTMLCanvasElement;
@@ -126,6 +130,22 @@ export default class Scene {
   }
 
   update(delta: number) {
+    this.debugContext.clearRect(
+      0,
+      0,
+      this.debugCanvas.width,
+      this.debugCanvas.height,
+    );
+    const quadTree = new QuadTree(
+      Rect.fromLeftTopRightBottom(0, 0, this.width, this.height),
+      traveller => traveller.position,
+    );
+    this._children.forEach(child => {
+      if (child instanceof Traveller) {
+        quadTree.insert(child);
+      }
+    });
+    quadTree.debugDraw('red');
     this._children.forEach(child => child.update(delta));
   }
 
