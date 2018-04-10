@@ -1,15 +1,15 @@
 // @flow
-import { compact } from '../util';
-import SceneObject from '../render/SceneObject';
-import type Scene from '../render/Scene';
-import Vector2 from '../geom/Vector2';
-import Circle from '../geom/Circle';
-import CirclePathSegment from '../geom/path/CirclePathSegment';
-import Path from '../geom/path/Path';
+import { compact } from '../lib/util';
+import SceneObject from '../lib/core/SceneObject';
+import type Scene from '../lib/core/Scene';
+import Vector2 from '../lib/geom/Vector2';
+import Circle from '../lib/geom/Circle';
+import CirclePathSegment from '../lib/geom/path/CirclePathSegment';
+import Path from '../lib/geom/path/Path';
 import Road from './Road';
-import Intersection from './Intersection';
-import ConnectionSet from './ConnectionSet';
-import type { ConnectionDirection } from './ConnectionSet';
+import Intersection from './networkNodes/Intersection';
+import ConnectionDirections from './lib/ConnectionDirections';
+import type { ConnectionDirection } from './lib/ConnectionDirections';
 
 export default class Junction extends SceneObject {
   _circle: Circle;
@@ -45,11 +45,11 @@ export default class Junction extends SceneObject {
     intersection.connectTo(road, direction);
 
     const isIncoming =
-      direction === ConnectionSet.IN ||
+      direction === ConnectionDirections.IN ||
       this._incomingIntersections.has(intersection);
 
     const isOutgoing =
-      direction === ConnectionSet.OUT ||
+      direction === ConnectionDirections.OUT ||
       this._outgoingIntersections.has(intersection);
 
     if (isIncoming) this._incomingIntersections.add(intersection);

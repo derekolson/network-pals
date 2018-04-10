@@ -1,7 +1,7 @@
 // @flow
 import invariant from 'invariant';
-import type Road from './Road';
-import type { NetworkNode } from './interfaces';
+import type Road from '../Road';
+import type { NetworkNode } from '../networkNodes/NetworkNode';
 
 const PathFinder = {
   getNextRoad(initialNode: NetworkNode, destinationNode: NetworkNode): Road {

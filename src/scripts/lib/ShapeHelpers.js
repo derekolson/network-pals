@@ -1,7 +1,7 @@
 // @flow
-import type Path from '../geom/path/Path';
-import StraightPathSegment from '../geom/path/StraightPathSegment';
-import CirclePathSegment from '../geom/path/CirclePathSegment';
+import type Path from './geom/path/Path';
+import StraightPathSegment from './geom/path/StraightPathSegment';
+import CirclePathSegment from './geom/path/CirclePathSegment';
 
 export default {
   circle(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) {

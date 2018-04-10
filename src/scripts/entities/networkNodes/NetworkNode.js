@@ -1,8 +1,8 @@
 // @flow
-import type Vector2 from '../geom/Vector2';
-import type { ConnectionDirection } from './ConnectionSet';
-import type Road from './Road';
-import type Traveller from './Traveller';
+import type Vector2 from '../../lib/geom/Vector2';
+import type { ConnectionDirection } from '../lib/ConnectionDirections';
+import type Road from '../Road';
+import type Traveller from '../Traveller';
 
 export interface NetworkNode {
   +canConsumeTraveller: boolean;

@@ -1,17 +1,17 @@
 // @flow
-import Pulse from '../effects/Pulse';
-import Circle from '../geom/Circle';
-import type Vector2 from '../geom/Vector2';
-import SceneObject from '../render/SceneObject';
-import ShapeHelpers from '../render/ShapeHelpers';
-import { TEAL } from '../colors';
-import { outSine } from '../easings';
-import { mapRange, constrain, flatten, uniq } from '../util';
-import ConnectionSet from './ConnectionSet';
-import type { ConnectionDirection } from './ConnectionSet';
-import Traveller from './Traveller';
-import Road from './Road';
-import type { NetworkNode } from './interfaces';
+import SceneObject from '../../lib/core/SceneObject';
+import Circle from '../../lib/geom/Circle';
+import type Vector2 from '../../lib/geom/Vector2';
+import ShapeHelpers from '../../lib/ShapeHelpers';
+import { outSine } from '../../lib/easings';
+import { mapRange, constrain, flatten, uniq } from '../../lib/util';
+import Pulse from '../../effects/Pulse';
+import { TEAL } from '../../colors';
+import ConnectionSet from '../lib/ConnectionSet';
+import type { ConnectionDirection } from '../lib/ConnectionDirections';
+import Traveller from '../Traveller';
+import Road from '../Road';
+import type { NetworkNode } from './NetworkNode';
 
 const DEFAULT_COOLDOWN = 500;
 

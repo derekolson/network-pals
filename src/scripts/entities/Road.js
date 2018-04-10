@@ -1,15 +1,15 @@
 // @flow
-import Path from '../geom/path/Path';
-import StraightPathSegment from '../geom/path/StraightPathSegment';
-import Vector2 from '../geom/Vector2';
-import type { Vector2ish } from '../geom/Vector2';
-import SceneObject from '../render/SceneObject';
-import ShapeHelpers from '../render/ShapeHelpers';
+import SceneObject from '../lib/core/SceneObject';
+import Path from '../lib/geom/path/Path';
+import StraightPathSegment from '../lib/geom/path/StraightPathSegment';
+import Vector2 from '../lib/geom/Vector2';
+import type { Vector2ish } from '../lib/geom/Vector2';
+import ShapeHelpers from '../lib/ShapeHelpers';
 import { YELLOW } from '../colors';
-import ConnectionSet from './ConnectionSet';
+import ConnectionDirections from './lib/ConnectionDirections';
+import type { NetworkNode } from './networkNodes/NetworkNode';
 import Junction from './Junction';
 import Traveller from './Traveller';
-import type { NetworkNode } from './interfaces';
 
 // const ROAD_OUTER_COLOR = BLUE;
 // const ROAD_INNER_COLOR = LIGHT_BG;
@@ -71,17 +71,21 @@ export default class Road extends SceneObject {
     }
 
     if (from instanceof Junction) {
-      this.from = from.connectToRoadAtAngle(this, angleFrom, ConnectionSet.OUT);
+      this.from = from.connectToRoadAtAngle(
+        this,
+        angleFrom,
+        ConnectionDirections.OUT,
+      );
     } else {
       this.from = from;
-      from.connectTo(this, ConnectionSet.OUT);
+      from.connectTo(this, ConnectionDirections.OUT);
     }
 
     if (to instanceof Junction) {
-      this.to = to.connectToRoadAtAngle(this, angleTo, ConnectionSet.IN);
+      this.to = to.connectToRoadAtAngle(this, angleTo, ConnectionDirections.IN);
     } else {
       this.to = to;
-      to.connectTo(this, ConnectionSet.IN);
+      to.connectTo(this, ConnectionDirections.IN);
     }
   }
 

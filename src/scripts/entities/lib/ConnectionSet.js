@@ -1,22 +1,19 @@
 // @flow
-import { sample } from '../util';
-import type Road from './Road';
-
-export type ConnectionDirection = 'IN' | 'OUT';
+import { sample } from '../../lib/util';
+import type Road from '../Road';
+import ConnectionDirections from './ConnectionDirections';
+import type { ConnectionDirection } from './ConnectionDirections';
 
 export default class ConnectionSet {
-  static IN: ConnectionDirection = 'IN';
-  static OUT: ConnectionDirection = 'OUT';
-
   incoming: Road[] = [];
   outgoing: Road[] = [];
 
   add(target: Road, direction: ConnectionDirection) {
     switch (direction) {
-      case ConnectionSet.IN:
+      case ConnectionDirections.IN:
         this.addIncoming(target);
         break;
-      case ConnectionSet.OUT:
+      case ConnectionDirections.OUT:
         this.addOutgoing(target);
         break;
       default:

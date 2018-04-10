@@ -1,11 +1,10 @@
 // @flow
 import invariant from 'invariant';
-import Scene from './render/Scene';
-import Producer from './thangs/Producer';
-import Road from './thangs/Road';
-import Consumer from './thangs/Consumer';
-import Intersection from './thangs/Intersection';
-import Junction from './thangs/Junction';
+import Scene from './lib/core/Scene';
+import Consumer from './entities/networkNodes/Consumer';
+import Producer from './entities/networkNodes/Producer';
+import Road from './entities/Road';
+import Junction from './entities/Junction';
 
 const ROUND = 20;
 

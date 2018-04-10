@@ -1,14 +1,14 @@
 // @flow
 import invariant from 'invariant';
-import SceneObject from '../render/SceneObject';
-import ShapeHelpers from '../render/ShapeHelpers';
-import { sample, constrain, mapRange, random } from '../util';
+import SceneObject from '../lib/core/SceneObject';
+import type Vector2 from '../lib/geom/Vector2';
+import ShapeHelpers from '../lib/ShapeHelpers';
+import { outBack, inBack } from '../lib/easings';
+import { sample, constrain, mapRange, random } from '../lib/util';
 import { BLUE } from '../colors';
-import { outBack, inBack } from '../easings';
+import type { NetworkNode } from './networkNodes/NetworkNode';
+import Intersection from './networkNodes/Intersection';
 import type Road from './Road';
-import type { NetworkNode } from './interfaces';
-import type Vector2 from '../geom/Vector2';
-import Intersection from './Intersection';
 
 const TRAVELLER_COLOR = BLUE.fade(0.4);
 const TRAVELLER_RADIUS = 7;

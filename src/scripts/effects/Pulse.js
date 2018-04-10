@@ -1,10 +1,10 @@
 // @flow
 import type Color from 'color';
-import SceneObject from '../render/SceneObject';
-import ShapeHelpers from '../render/ShapeHelpers';
-import Circle from '../geom/Circle';
-import { linear } from '../easings';
-import { lerp } from '../util';
+import SceneObject from '../lib/core/SceneObject';
+import ShapeHelpers from '../lib/ShapeHelpers';
+import Circle from '../lib/geom/Circle';
+import { linear } from '../lib/easings';
+import { lerp } from '../lib/util';
 
 type PulseOptions = {|
   x: number,

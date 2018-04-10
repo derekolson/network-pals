@@ -1,17 +1,17 @@
 // @flow
 import invariant from 'invariant';
-import Pulse from '../effects/Pulse';
-import Circle from '../geom/Circle';
-import type Vector2 from '../geom/Vector2';
-import SceneObject from '../render/SceneObject';
-import ShapeHelpers from '../render/ShapeHelpers';
-import { RED } from '../colors';
-import { constrain, mapRange } from '../util';
-import { inBack, reverse, linear } from '../easings';
-import ConnectionSet from './ConnectionSet';
-import type { ConnectionDirection } from './ConnectionSet';
-import type { NetworkNode } from './interfaces';
-import type Road from './Road';
+import SceneObject from '../../lib/core/SceneObject';
+import Circle from '../../lib/geom/Circle';
+import type Vector2 from '../../lib/geom/Vector2';
+import ShapeHelpers from '../../lib/ShapeHelpers';
+import { inBack, reverse, linear } from '../../lib/easings';
+import { constrain, mapRange } from '../../lib/util';
+import Pulse from '../../effects/Pulse';
+import { RED } from '../../colors';
+import ConnectionSet from '../lib/ConnectionSet';
+import type { ConnectionDirection } from '../lib/ConnectionDirections';
+import type Road from '../Road';
+import type { NetworkNode } from './NetworkNode';
 
 const DEFAULT_COOLDOWN = 1000;
 
