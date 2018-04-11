@@ -93,6 +93,14 @@ export default class Road extends SceneObject {
     return this._path.length;
   }
 
+  get start(): Vector2 {
+    return this._path.start;
+  }
+
+  get end(): Vector2 {
+    return this._path.end;
+  }
+
   get expectedTimeFromStartToEnd(): number {
     if (this._currentTravellers.length) {
       const avgSpeed =
@@ -141,6 +149,10 @@ export default class Road extends SceneObject {
 
   getPointAtPosition(position: number): Vector2 {
     return this._path.getPointAtPosition(position);
+  }
+
+  getAngleAtPosition(position: number): number {
+    return this._path.getAngleAtPosition(position);
   }
 
   getTravellerAfterPosition(position: number): Traveller | null {

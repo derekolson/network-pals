@@ -4,7 +4,6 @@ import { constrain, compact } from '../../util';
 import Circle from '../Circle';
 import Vector2 from '../Vector2';
 import type { Vector2ish } from '../Vector2';
-import Line2 from '../Line2';
 import StraightPathSegment from './StraightPathSegment';
 import CirclePathSegment from './CirclePathSegment';
 
@@ -13,6 +12,7 @@ export interface PathSegment {
   +end: Vector2;
   +length: number;
   getPointAtPosition(position: number): Vector2;
+  getAngleAtPosition(position: number): number;
 }
 
 export default class Path implements PathSegment {
@@ -55,6 +55,18 @@ export default class Path implements PathSegment {
     for (const segment of this.segments) {
       if (constrained <= soFar + segment.length) {
         return segment.getPointAtPosition(constrained - soFar);
+      }
+      soFar += segment.length;
+    }
+    throw new Error('this is supposed to be unreachable oops');
+  }
+
+  getAngleAtPosition(position: number): number {
+    const constrained = constrain(0, this.length, position);
+    let soFar = 0;
+    for (const segment of this.segments) {
+      if (constrained <= soFar + segment.length) {
+        return segment.getAngleAtPosition(constrained - soFar);
       }
       soFar += segment.length;
     }

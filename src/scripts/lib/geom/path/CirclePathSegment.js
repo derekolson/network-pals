@@ -88,13 +88,20 @@ export default class CirclePathSegment implements PathSegment {
   }
 
   getPointAtPosition(position: number): Vector2 {
-    const angle = mapRange(
-      0,
-      this.length,
-      this.startAngle,
-      this.startAngle + this.angleDifference,
-      constrain(0, this.length, position),
-    );
+    const angle = this.getAngleAtPosition(position) + Math.PI / 2;
     return this.circle.pointOnCircumference(angle);
+  }
+
+  getAngleAtPosition(position: number): number {
+    return (
+      mapRange(
+        0,
+        this.length,
+        this.startAngle,
+        this.startAngle + this.angleDifference,
+        constrain(0, this.length, position),
+      ) -
+      Math.PI / 2
+    );
   }
 }

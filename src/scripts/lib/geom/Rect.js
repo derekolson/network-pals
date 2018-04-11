@@ -19,8 +19,8 @@ export default class Rect {
     return new Rect(centerX, centerY, width, height);
   }
 
-  constructor(x: number, y: number, width: number, height: number) {
-    this.center = new Vector2(x, y);
+  constructor(centerX: number, centerY: number, width: number, height: number) {
+    this.center = new Vector2(centerX, centerY);
     this.width = width;
     this.height = height;
   }
@@ -46,7 +46,7 @@ export default class Rect {
   }
 
   debugDraw(color: string) {
-    const ctx: CanvasRenderingContext2D = window.scene.debugContext;
+    const ctx: CanvasRenderingContext2D = window.debugContext;
     ctx.strokeStyle = color;
     ctx.lineWidth = 1;
     ctx.strokeRect(this.left, this.top, this.width, this.height);

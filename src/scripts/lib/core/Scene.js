@@ -1,17 +1,22 @@
 // @flow
 import invariant from 'invariant';
 import type SceneObject from './SceneObject';
+import type SceneSystem from './SceneSystem';
+
+const speed = 1;
+const scale = 1;
+const repeatUpdate = 1;
 
 export default class Scene {
   _canvas: HTMLCanvasElement;
   _ctx: CanvasRenderingContext2D;
-  _debugCanvas: HTMLCanvasElement | null = null;
-  _debugCtx: CanvasRenderingContext2D | null = null;
   _scaleFactor: number;
   _children: SceneObject[] = [];
   _isPlaying: boolean = false;
   _frameHandle: string | null = null;
   _lastElapsedTime: number | null = null;
+  _systemsByName: { [name: string]: ?SceneSystem } = {};
+  _systems: SceneSystem[] = [];
 
   constructor(width: number, height: number, scaleFactor: number = 1) {
     this._canvas = document.createElement('canvas');
@@ -45,31 +50,53 @@ export default class Scene {
     this._isPlaying = newValue;
   }
 
-  get hasDebugCanvas(): boolean {
-    return this._debugCanvas !== null;
-  }
-
-  get debugCanvas(): HTMLCanvasElement {
-    if (!this._debugCanvas) {
-      const canvas = document.createElement('canvas');
-      canvas.width = this.width;
-      canvas.height = this.height;
-      this._debugCanvas = canvas;
-    }
-
-    return this._debugCanvas;
-  }
-
-  get debugContext(): CanvasRenderingContext2D {
-    if (!this._debugCtx) {
-      this._debugCtx = this.debugCanvas.getContext('2d');
-    }
-
-    return this._debugCtx;
+  get children(): SceneObject[] {
+    return this._children;
   }
 
   appendTo(element: HTMLElement) {
     element.appendChild(this._canvas);
+  }
+
+  hasSystem(systemType: Class<SceneSystem>): boolean {
+    invariant(systemType.systemName, 'system must have name');
+    return (
+      Object.prototype.hasOwnProperty.call(
+        this._systemsByName,
+        systemType.systemName,
+      ) && !!this._systemsByName[systemType.systemName]
+    );
+  }
+
+  getSystem<T: SceneSystem>(systemType: Class<T>): T {
+    const name = systemType.systemName;
+    invariant(name, 'system must have name');
+
+    const system = this._systemsByName[name];
+    invariant(system, `system ${name} not found`);
+    invariant(
+      system instanceof systemType,
+      `system ${name} is wrong instance type`,
+    );
+
+    return system;
+  }
+
+  addSystem(system: SceneSystem) {
+    invariant(
+      !this.hasSystem(system.constructor),
+      'only one system of each type allowed',
+    );
+    this._systemsByName[system.constructor.systemName] = system;
+    this._systems.push(system);
+    system.afterAddToScene(this);
+  }
+
+  removeSystem(systemType: Class<SceneSystem>) {
+    const system = this.getSystem(systemType);
+    system.beforeRemoveFromScene(this);
+    delete this._systemsByName[systemType.systemName];
+    this._systems = this._systems.filter(s => s !== system);
   }
 
   addChild(child: SceneObject) {
@@ -111,22 +138,24 @@ export default class Scene {
     return child;
   }
 
+  update(delta: number) {
+    for (let i = 0; i < repeatUpdate; i++) {
+      this._systems.forEach(system => system.beforeUpdate(delta));
+      this._children.forEach(child => child.update(delta));
+      this._systems.forEach(system => system.afterUpdate(delta));
+    }
+  }
+
   draw(elapsedTime: number) {
     this._ctx.clearRect(0, 0, this.width, this.height);
     this._ctx.save();
-    this._ctx.scale(this._scaleFactor, this._scaleFactor);
-    this._children.forEach(child => child.draw(this._ctx, elapsedTime));
+    this._ctx.scale(this._scaleFactor * scale, this._scaleFactor * scale);
 
-    if (this.hasDebugCanvas) {
-      const debugCanvas = this.debugCanvas;
-      this._ctx.drawImage(debugCanvas, 0, 0);
-    }
+    this._systems.forEach(system => system.beforeDraw(this._ctx, elapsedTime));
+    this._children.forEach(child => child.draw(this._ctx, elapsedTime));
+    this._systems.forEach(system => system.afterDraw(this._ctx, elapsedTime));
 
     this._ctx.restore();
-  }
-
-  update(delta: number) {
-    this._children.forEach(child => child.update(delta));
   }
 
   start() {
@@ -144,6 +173,7 @@ export default class Scene {
   }
 
   _tick = (elapsedTime: number) => {
+    elapsedTime = elapsedTime * speed;
     const lastElapsedTime = this._lastElapsedTime;
     if (lastElapsedTime !== null) {
       const deltaTime = elapsedTime - lastElapsedTime;

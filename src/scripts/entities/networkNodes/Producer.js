@@ -33,7 +33,7 @@ export default class Producer extends SceneObject implements NetworkNode {
   _circle: Circle;
   _visualConnectionCircle: Circle;
   _cooldown: number;
-  _timer: number = 0;
+  _timer: number;
   _connectionSet: ConnectionSet = new ConnectionSet();
 
   constructor(x: number, y: number, cooldown: number = DEFAULT_COOLDOWN) {
@@ -41,6 +41,7 @@ export default class Producer extends SceneObject implements NetworkNode {
     this._circle = new Circle(x, y, RADIUS);
     this._visualConnectionCircle = new Circle(x, y, VISUAL_CONNECTION_RADIUS);
     this._cooldown = cooldown;
+    this._timer = cooldown;
   }
 
   get position(): Vector2 {
@@ -158,11 +159,11 @@ export default class Producer extends SceneObject implements NetworkNode {
   }
 
   _attemptEmitTraveller(): boolean {
-    const traveller = new Traveller();
     const road = this._connectionSet.sampleOutgoing();
     if (!(road instanceof Road)) return false;
 
     if (road.canAddTravellerAtStart()) {
+      const traveller = new Traveller();
       road.addTravellerAtStart(traveller);
       this.getScene().addChild(traveller);
       return true;

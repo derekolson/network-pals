@@ -36,4 +36,8 @@ export default class StraightPathSegment implements PathSegment {
     const constrainedPosition = constrain(0, this.length, position);
     return this.delta.withMagnitude(constrainedPosition).add(this.start);
   }
+
+  getAngleAtPosition(): number {
+    return this.delta.angle;
+  }
 }

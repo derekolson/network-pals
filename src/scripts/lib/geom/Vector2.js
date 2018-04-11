@@ -25,6 +25,12 @@ export default class Vector2 {
     throw new Error('invalid type to create vector');
   }
 
+  static fromMagnitudeAndAngle(magnitude: number, angle: number): Vector2 {
+    const x = magnitude * Math.cos(angle);
+    const y = magnitude * Math.sin(angle);
+    return new Vector2(x, y);
+  }
+
   constructor(x: number, y: number) {
     this.x = x;
     this.y = y;
@@ -47,7 +53,7 @@ export default class Vector2 {
   }
 
   debugDraw(color: string) {
-    const ctx: CanvasRenderingContext2D = window.scene.debugContext;
+    const ctx: CanvasRenderingContext2D = window.debugContext;
     ctx.beginPath();
     ctx.moveTo(this.x - 3, this.y - 3);
     ctx.lineTo(this.x + 3, this.y + 3);

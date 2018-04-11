@@ -5,6 +5,8 @@ import Consumer from './entities/networkNodes/Consumer';
 import Producer from './entities/networkNodes/Producer';
 import Road from './entities/Road';
 import Junction from './entities/Junction';
+import DebugOverlay from './systems/DebugOverlay';
+import TravellerFinder from './systems/TravellerFinder';
 
 const ROUND = 20;
 
@@ -95,6 +97,31 @@ const scenario3 = () => {
   scene.addChild(new Road(mainJunction, southConsumer));
 };
 
+const scenario4 = () => {
+  const producer1 = new Producer(100, 100, 1000);
+  const producer2 = new Producer(300, 200, 1000);
+  const producer3 = new Producer(100, 300, 1000);
+  const consumer1 = new Consumer(300, 100, 1000);
+  const consumer2 = new Consumer(100, 200, 1000);
+  const consumer3 = new Consumer(300, 300, 1000);
+  scene.addChild(producer1);
+  scene.addChild(producer2);
+  scene.addChild(producer3);
+  scene.addChild(consumer1);
+  scene.addChild(consumer2);
+  scene.addChild(consumer3);
+
+  const junction = new Junction(200, 200, 30);
+  scene.addChild(junction);
+
+  scene.addChild(new Road(producer1, junction));
+  scene.addChild(new Road(producer2, junction));
+  scene.addChild(new Road(producer3, junction));
+  scene.addChild(new Road(junction, consumer1));
+  scene.addChild(new Road(junction, consumer2));
+  scene.addChild(new Road(junction, consumer3));
+};
+
 const go = () => {
   if (window.scene) return;
   scene = new Scene(800, 600, window.devicePixelRatio);
@@ -103,7 +130,10 @@ const go = () => {
   invariant(root, '#root must be present');
   scene.appendTo(root);
 
-  scenario3();
+  scene.addSystem(new DebugOverlay());
+  scene.addSystem(new TravellerFinder());
+
+  scenario4();
 
   scene.start();
 };

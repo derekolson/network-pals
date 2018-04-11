@@ -1,10 +1,12 @@
 // @flow
 import invariant from 'invariant';
 import SceneObject from '../lib/core/SceneObject';
-import type Vector2 from '../lib/geom/Vector2';
+import Circle from '../lib/geom/Circle';
+import Vector2 from '../lib/geom/Vector2';
 import ShapeHelpers from '../lib/ShapeHelpers';
 import { outBack, inBack } from '../lib/easings';
 import { sample, constrain, mapRange, random } from '../lib/util';
+import TravellerFinder from '../systems/TravellerFinder';
 import { BLUE } from '../colors';
 import type { NetworkNode } from './networkNodes/NetworkNode';
 import Intersection from './networkNodes/Intersection';
@@ -12,8 +14,11 @@ import type Road from './Road';
 
 const TRAVELLER_COLOR = BLUE.fade(0.4);
 const TRAVELLER_RADIUS = 7;
-const MIN_TRAVELLER_SAFE_RADIUS = 30;
-const MAX_TRAVELLER_SAFE_RADIUS = 30;
+const MIN_TRAVELLER_COMFORTABLE_RADIUS = 30;
+const MAX_TRAVELLER_COMFORTABLE_RADIUS = 30;
+const MIN_TRAVELLER_SAFE_RADIUS = 15;
+const MAX_TRAVELLER_SAFE_RADIUS = 15;
+const NEARBY_RADIUS = 100;
 
 const INITIAL_SPEED = 5;
 const MAX_SPEED = 100;
@@ -21,33 +26,83 @@ const ACCELERATION = 300;
 const DECELERATION = -300;
 const ROAD_END_OVERSHOOT = 0;
 
+const PATIENCE = 1500;
+const FORCE_ACCELERATE_DURATION = 100;
+
 const ENTER_DURATION = 400;
 const EXIT_DURATION = 400;
 
 const enterEase = outBack(3);
 const exitEase = inBack(3);
 
-let i = 0;
+const StopReasons: {|
+  STOPPED_FOR_DESTINATION: 'STOPPED_FOR_DESTINATION',
+  STOPPED_FOR_TRAFFIC_IN_FRONT: 'STOPPED_FOR_TRAFFIC_IN_FRONT',
+  STOPPED_FOR_TRAFFIC_NEARBY: 'STOPPED_FOR_TRAFFIC_NEARBY',
+|} = {
+  STOPPED_FOR_DESTINATION: 'STOPPED_FOR_DESTINATION',
+  STOPPED_FOR_TRAFFIC_IN_FRONT: 'STOPPED_FOR_TRAFFIC_IN_FRONT',
+  STOPPED_FOR_TRAFFIC_NEARBY: 'STOPPED_FOR_TRAFFIC_NEARBY',
+};
+
+export type StopReason = $Values<typeof StopReasons>;
 
 export default class Traveller extends SceneObject {
   static MAX_SPEED = MAX_SPEED;
+  static StopReasons = StopReasons;
 
   comfortableRadius = random(
-    MIN_TRAVELLER_SAFE_RADIUS,
-    MAX_TRAVELLER_SAFE_RADIUS,
+    MIN_TRAVELLER_COMFORTABLE_RADIUS,
+    MAX_TRAVELLER_COMFORTABLE_RADIUS,
   );
+  safeRadius = random(MIN_TRAVELLER_SAFE_RADIUS, MAX_TRAVELLER_SAFE_RADIUS);
   _currentRoad: Road | null = null;
   _destination: NetworkNode | null = null;
   _positionOnCurrentRoad: number = 0;
   _speed: number = INITIAL_SPEED;
   _age: number = 0;
   _exitStartedAt: number | null = null;
-  i = i++;
+  _stoppedTime: number = 0;
+  _forceAccelerateTimer: number = 0;
+  _stopReason: StopReason | null = null;
+  _stoppedFor: Traveller[] = [];
+
+  get currentRoad(): Road | null {
+    return this._currentRoad;
+  }
 
   get position(): Vector2 {
     invariant(this._currentRoad, 'currentRoad must be defined');
     return this._currentRoad.getPointAtPosition(this._positionOnCurrentRoad);
   }
+
+  // get predictedPositionInDirectionOfTravel(): Vector2 {
+  //   invariant(this._currentRoad, 'currentRoad must be defined');
+  //   return this._getPredictedPointForPosition(
+  //     this._currentRoad,
+  //     this._positionOnCurrentRoad + 1,
+  //   );
+  // }
+
+  get predictedStopPoint(): Vector2 {
+    const currentRoad = this._currentRoad;
+    invariant(currentRoad, 'currentRoad must be defined');
+    const stopPosition = this._getPredictedStopPositionIfDecelerating();
+    return this._getPredictedPointForPosition(currentRoad, stopPosition);
+  }
+
+  get predictedStopArea(): Circle {
+    const center = this.predictedStopPoint;
+    return new Circle(center.x, center.y, this.safeRadius);
+  }
+
+  get potentialNextPredictedStopPoint(): Vector2 {
+    const currentRoad = this._currentRoad;
+    invariant(currentRoad, 'currentRoad must be defined');
+    const stopPosition = this._getPredictedStopPositionIfDecelerating();
+    return this._getPredictedPointForPosition(currentRoad, stopPosition + 1);
+  }
+
   get positionOnCurrentRoad(): number {
     return this._positionOnCurrentRoad;
   }
@@ -65,6 +120,22 @@ export default class Traveller extends SceneObject {
     return this._speed;
   }
 
+  get isStopped(): boolean {
+    return this.speed === 0;
+  }
+
+  get stoppedTime(): number {
+    return this._stoppedTime;
+  }
+
+  get stopReason(): StopReason | null {
+    return this._stopReason;
+  }
+
+  isStoppedFor(other: Traveller): boolean {
+    return this._stoppedFor.includes(other);
+  }
+
   onAddedToRoad(road: Road) {
     this._currentRoad = road;
     this._positionOnCurrentRoad = 0;
@@ -74,6 +145,9 @@ export default class Traveller extends SceneObject {
   }
 
   onRemovedFromRoad() {
+    this.getScene()
+      .getSystem(TravellerFinder)
+      .removeTraveller(this);
     this._currentRoad = null;
   }
 
@@ -87,6 +161,8 @@ export default class Traveller extends SceneObject {
 
   update(dtMilliseconds: number) {
     this._age += dtMilliseconds;
+    this._stopReason = null;
+    this._stoppedFor = [];
 
     const currentRoad = this._currentRoad;
     invariant(currentRoad, 'current road must be defined');
@@ -94,6 +170,7 @@ export default class Traveller extends SceneObject {
     this._move(dtMilliseconds, currentRoad);
     this._checkAtEndOfRoad(currentRoad);
     this._checkExit();
+    if (window.debugDraw) this._debugDraw();
   }
 
   draw(ctx: CanvasRenderingContext2D) {
@@ -112,6 +189,30 @@ export default class Traveller extends SceneObject {
 
   get _isExiting(): boolean {
     return this._exitStartedAt !== null;
+  }
+
+  _debugDraw() {
+    const currentRoad = this._currentRoad;
+    if (!currentRoad) return;
+
+    const predictedStopPoint = this.predictedStopPoint;
+    new Circle(
+      this.position.x,
+      this.position.y,
+      this.comfortableRadius,
+    ).debugDraw('rgba(0, 255, 0, 0.4)');
+    new Circle(this.position.x, this.position.y, this.safeRadius).debugDraw(
+      this._forceAccelerateTimer ? 'cyan' : 'red',
+    );
+    predictedStopPoint.debugDraw('lime');
+    this.predictedStopArea.debugDraw('rgba(255, 0, 255, 0.5)');
+
+    const ctx: CanvasRenderingContext2D = window.debugContext;
+    ctx.fillText(
+      `${this.id} ${Math.round(this._stoppedTime)}`,
+      this.position.x,
+      this.position.y,
+    );
   }
 
   _getEnterTransitionScale() {
@@ -149,6 +250,18 @@ export default class Traveller extends SceneObject {
     );
   }
 
+  _getPredictedPointForPosition(currentRoad: Road, position: number): Vector2 {
+    if (position <= currentRoad.length) {
+      return currentRoad.getPointAtPosition(position);
+    }
+
+    const overshoot = position - currentRoad.length;
+    const overshootAngle = currentRoad.getAngleAtPosition(currentRoad.length);
+    return Vector2.fromMagnitudeAndAngle(overshoot, overshootAngle).add(
+      currentRoad.end,
+    );
+  }
+
   _pickDestination() {
     if (!this._currentRoad) return;
     const potentialDestinations = this._currentRoad
@@ -161,10 +274,25 @@ export default class Traveller extends SceneObject {
   _move(dtMilliseconds: number, currentRoad: Road) {
     const dtSeconds = dtMilliseconds / 1000;
 
-    if (this._shouldDecelerate(currentRoad)) {
+    this._forceAccelerateTimer = constrain(
+      0,
+      FORCE_ACCELERATE_DURATION,
+      this._forceAccelerateTimer - dtMilliseconds,
+    );
+
+    if (
+      this._forceAccelerateTimer <= 0 &&
+      this._shouldDecelerate(currentRoad)
+    ) {
       this._accelerate(DECELERATION, dtSeconds, currentRoad);
     } else {
       this._accelerate(ACCELERATION, dtSeconds, currentRoad);
+    }
+
+    if (this._speed === 0) {
+      this._stoppedTime += dtMilliseconds;
+    } else {
+      this._stoppedTime = 0;
     }
   }
 
@@ -174,6 +302,7 @@ export default class Traveller extends SceneObject {
       currentRoad.to === this._destination &&
       currentRoad.length + ROAD_END_OVERSHOOT < predictedStopPosition
     ) {
+      this._stopReason = StopReasons.STOPPED_FOR_DESTINATION;
       return true;
     }
 
@@ -188,6 +317,8 @@ export default class Traveller extends SceneObject {
       nextTravellerOnRoad &&
       nextTravellerOnRoad.positionOnCurrentRoad < safeStopAheadPosition
     ) {
+      this._stopReason = StopReasons.STOPPED_FOR_TRAFFIC_IN_FRONT;
+      this._stoppedFor.push(nextTravellerOnRoad);
       return true;
     }
 
@@ -198,18 +329,178 @@ export default class Traveller extends SceneObject {
         const outgoingTravellerPosition =
           currentRoad.length + outgoingTraveller.positionOnCurrentRoad;
 
-        if (outgoingTravellerPosition < safeStopAheadPosition) return true;
+        if (outgoingTravellerPosition < safeStopAheadPosition) {
+          this._stopReason = StopReasons.STOPPED_FOR_TRAFFIC_IN_FRONT;
+          this._stoppedFor.push(outgoingTraveller);
+          return true;
+        }
       }
 
       const incomingTraveller = intersection.getClosestIncomingTraveller();
       if (incomingTraveller && incomingTraveller !== this) {
         const incomingTravellerPosition =
           currentRoad.length - incomingTraveller.distanceToEndOfCurrentRoad;
-        if (incomingTravellerPosition < safeStopAheadPosition) return true;
+        if (incomingTravellerPosition < safeStopAheadPosition) {
+          this._stopReason = StopReasons.STOPPED_FOR_TRAFFIC_IN_FRONT;
+          this._stoppedFor.push(incomingTraveller);
+          return true;
+        }
       }
     }
 
+    if (this._shouldDecelerateForNearbyTravellers(currentRoad)) {
+      this._stopReason = StopReasons.STOPPED_FOR_TRAFFIC_NEARBY;
+      return true;
+    }
+
+    // const currentPoint = this.position;
+    // const currentSafeCircle = new Circle(
+    //   currentPoint.x,
+    //   currentPoint.y,
+    //   this.safeRadius,
+    // );
+    // if (
+    //   this._shouldDecelerateForTravellersInCircle(
+    //     currentRoad,
+    //     currentSafeCircle,
+    //   )
+    // ) {
+    //   return true;
+    // }
+
+    // const predictedStopPoint = this._getPredictedStopPointIfDecelerating(
+    //   currentRoad,
+    // );
+    // const predictedSafeCircle = new Circle(
+    //   predictedStopPoint.x,
+    //   predictedStopPoint.y,
+    //   this.safeRadius,
+    // );
+    // if (
+    //   this._shouldDecelerateForTravellersInCircle(
+    //     currentRoad,
+    //     predictedSafeCircle,
+    //   )
+    // ) {
+    //   return true;
+    // }
+
     return false;
+  }
+
+  _shouldDecelerateForNearbyTravellers(currentRoad: Road): boolean {
+    const travellerFinder = this.getScene().getSystem(TravellerFinder);
+    const stopArea = this.predictedStopArea;
+    const stopPoint = stopArea.center;
+    const nextStopPoint = this.potentialNextPredictedStopPoint;
+    const searchArea = stopArea.withRadius(NEARBY_RADIUS);
+    const nearbyTravellers = travellerFinder.findTravellersInCircle(searchArea);
+
+    for (const other of nearbyTravellers) {
+      // cannot crash into self
+      if (other === this) continue;
+
+      // if we both started breaking now, we would be a safe distance so we're fine
+      const otherStopArea = other.predictedStopArea;
+      const otherStopPoint = otherStopArea.center;
+      if (!stopArea.intersectsCircle(otherStopArea)) continue;
+
+      // currently we think other will stop at the center of otherStopArea.
+      // otherNextStopPoint is one pixel further forward based other's current
+      // heading
+      const otherNextStopPoint = other.potentialNextPredictedStopPoint;
+
+      // if we're moving away from each other, everything is fine:
+      const currentStopDistance = stopPoint.distanceTo(otherStopArea.center);
+      const nextStopDistance = nextStopPoint.distanceTo(otherNextStopPoint);
+      if (nextStopDistance > currentStopDistance) continue;
+
+      // who is moving in a direction that's headed more towards the other's
+      // stop position? if they're moving towards me but i'm moving more
+      // orthagonally relative to them, they should slow down
+      const approachAmount = stopPoint.distanceTo(otherNextStopPoint);
+      const otherApproachAmount = otherStopPoint.distanceTo(nextStopPoint);
+      if (approachAmount < otherApproachAmount) {
+        continue;
+      }
+
+      // so we know we're moving towards them faster than they're moving
+      // towards us, but how much? If it's barely any and we're not already too
+      // close to them, we could just keep going
+      if (
+        approachAmount - otherApproachAmount <
+        0.15
+        // approachAmount > this.safeRadius * 0.8
+      ) {
+        continue;
+      }
+
+      // if there's a clash... just randomly tie-break
+      if (approachAmount === otherApproachAmount) {
+        return Math.random() < 0.5;
+      }
+
+      // if we've been waiting around for fuckin ever just slam that fuckin
+      // pedal to the floor like ugh (in reality just nudge forward a little)
+      // (unless the other one is stopped to cus otherwise we'll just crash)
+      if (this._stoppedTime > PATIENCE && !other.isStopped) {
+        this._forceAcceleration();
+        return false;
+      }
+
+      // attempt to break deadlocks. i guess this is the equivalent of 'other'
+      // waving at the current traveller to continue
+      if (other.isStoppedFor(this)) continue;
+
+      this._stoppedFor.push(other);
+    }
+
+    if (this._stoppedFor.length) return true;
+
+    return false;
+  }
+
+  // _shouldDecelerateForTravellersInCircle(currentRoad: Road, circle: Circle) {
+  //   const travellerFinder = this.getScene().getSystem(TravellerFinder);
+  //   const overlappingTravellers = travellerFinder.findTravellersInCircle(
+  //     circle,
+  //   );
+
+  //   const currentPosition = this.position;
+  //   const nextPosition = this.predictedPositionInDirectionOfTravel;
+
+  //   const clashingTravellers = overlappingTravellers.filter(other => {
+  //     if (other === this) return false;
+  //     if (other.currentRoad === currentRoad) return false;
+
+  // const currentDistance = currentPosition.distanceTo(other.position);
+  // const nextDistance = nextPosition.distanceTo(other.position);
+
+  // const isGettingCloser = nextDistance < currentDistance;
+  // if (!isGettingCloser) return false;
+
+  // const otherNextPosition = other.predictedPositionInDirectionOfTravel;
+  // const otherNextDistance = currentPosition.distanceTo(otherNextPosition);
+  // const thisMoveDelta = nextDistance - currentDistance;
+  // const otherMoveDelta = otherNextDistance - currentDistance;
+  // if (thisMoveDelta < otherMoveDelta) return true;
+
+  // if (this.isStopped && !other.isStopped) return true;
+
+  // if (this.isStopped && other.isStopped) {
+  //   if (this.stoppedTime === other.stoppedTime && this.id < other.id)
+  //     return false;
+  //   if (this.stoppedTime < other.stoppedTime) return false;
+  // }
+
+  //     return true;
+  //   });
+
+  //   return clashingTravellers.length > 0;
+  // }
+
+  _forceAcceleration() {
+    this._forceAccelerateTimer = FORCE_ACCELERATE_DURATION;
   }
 
   _accelerate(acceleration: number, dtSeconds: number, currentRoad: Road) {
