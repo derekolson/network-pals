@@ -101,15 +101,19 @@ const scenario4 = () => {
   const producer1 = new Producer(100, 100, 1000);
   const producer2 = new Producer(300, 200, 1000);
   const producer3 = new Producer(100, 300, 1000);
+  // const producer4 = new Producer(400, 100, 1000);
   const consumer1 = new Consumer(300, 100, 1000);
   const consumer2 = new Consumer(100, 200, 1000);
   const consumer3 = new Consumer(300, 300, 1000);
+  // const consumer4 = new Consumer(430, 300, 1000);
   scene.addChild(producer1);
   scene.addChild(producer2);
   scene.addChild(producer3);
+  // scene.addChild(producer4);
   scene.addChild(consumer1);
   scene.addChild(consumer2);
   scene.addChild(consumer3);
+  // scene.addChild(consumer4);
 
   const junction = new Junction(200, 200, 30);
   scene.addChild(junction);
@@ -120,6 +124,13 @@ const scenario4 = () => {
   scene.addChild(new Road(junction, consumer1));
   scene.addChild(new Road(junction, consumer2));
   scene.addChild(new Road(junction, consumer3));
+
+  // scene.addChild(
+  //   new Road(producer4, consumer4, {
+  //     points: [[400, 250], [415, 250], [415, 150], [430, 150]],
+  //     autoRound: 30,
+  //   }),
+  // );
 };
 
 const go = () => {
