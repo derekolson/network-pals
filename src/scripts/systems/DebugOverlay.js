@@ -17,12 +17,15 @@ export default class DebugOverlay extends SceneSystem {
 
   afterAddToScene(scene: Scene) {
     super.afterAddToScene(scene);
-    this.canvas.width = scene.width;
-    this.canvas.height = scene.height;
+    this.canvas.width = scene.width * scene.scaleFactor;
+    this.canvas.height = scene.height * scene.scaleFactor;
+    this.ctx.scale(scene.scaleFactor, scene.scaleFactor);
+    window.HAIRLINE = 1 / scene.scaleFactor;
   }
 
   afterDraw(sceneCtx: CanvasRenderingContext2D) {
-    sceneCtx.drawImage(this.canvas, 0, 0);
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    const { width, height } = this.getScene();
+    sceneCtx.drawImage(this.canvas, 0, 0, width, height);
+    this.ctx.clearRect(0, 0, width, height);
   }
 }

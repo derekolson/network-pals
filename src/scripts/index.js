@@ -5,6 +5,7 @@ import Consumer from './entities/networkNodes/Consumer';
 import Producer from './entities/networkNodes/Producer';
 import Road from './entities/Road';
 import Junction from './entities/Junction';
+import Pal from './entities/Pal';
 import DebugOverlay from './systems/DebugOverlay';
 import TravellerFinder from './systems/TravellerFinder';
 
@@ -133,6 +134,11 @@ const scenario4 = () => {
   // );
 };
 
+const scenario5 = () => {
+  const pal = new Pal(100, 50);
+  scene.addChild(pal);
+};
+
 const go = () => {
   if (window.scene) return;
   scene = new Scene(800, 600, window.devicePixelRatio);
@@ -144,7 +150,7 @@ const go = () => {
   scene.addSystem(new DebugOverlay());
   scene.addSystem(new TravellerFinder());
 
-  scenario4();
+  scenario5();
 
   scene.start();
 };

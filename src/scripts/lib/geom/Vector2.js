@@ -55,12 +55,13 @@ export default class Vector2 {
   debugDraw(color: string) {
     const ctx: CanvasRenderingContext2D = window.debugContext;
     ctx.beginPath();
-    ctx.moveTo(this.x - 3, this.y - 3);
-    ctx.lineTo(this.x + 3, this.y + 3);
-    ctx.moveTo(this.x - 3, this.y + 3);
-    ctx.lineTo(this.x + 3, this.y - 3);
+    const size = 3 * window.HAIRLINE;
+    ctx.moveTo(this.x - size, this.y - size);
+    ctx.lineTo(this.x + size, this.y + size);
+    ctx.moveTo(this.x - size, this.y + size);
+    ctx.lineTo(this.x + size, this.y - size);
     ctx.strokeStyle = color;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = window.HAIRLINE;
     ctx.stroke();
   }
 
