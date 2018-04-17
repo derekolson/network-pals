@@ -1,20 +1,13 @@
 // @flow
 import SceneObject from '../lib/core/SceneObject';
 import Vector2 from '../lib/geom/Vector2';
-import Ellipse from '../lib/geom/Ellipse';
+import Circle from '../lib/geom/Circle';
 import ShapeHelpers from '../lib/ShapeHelpers';
-import { constrain } from '../lib/util';
+import { constrain, normaliseAngle } from '../lib/util';
 import { BLUE } from '../colors';
+import PalLeg from './PalLeg';
 
 const RADIUS = 7;
-const HIP_HEIGHT = 3;
-const ELLIPSE_Y_SCALE = 0.3;
-const LEG_WIDTH = 1.5;
-const LEG_LENGTH = 6;
-const KNEE_POSITION = 0.5;
-const KNEE_SCALE = 1.2;
-const LEG_MAX_LIFT = 0.3;
-const KNEE_MAX_OUT = 1;
 
 const EYE_Y = 3;
 const EYE_X = 2.5;
@@ -28,109 +21,92 @@ const BUTT_BOTTOM = 6;
 const BUTT_THICKNESS = 0.7;
 
 const BOD_COLOR = BLUE.lighten(0.2);
-const DETAIL_COLOR = BLUE.darken(0.3);
-const LEG_COLOR = BLUE;
+const FACE_COLOR = BLUE.darken(0.3);
+const BUTT_COLOR = BLUE.darken(0.1);
+
+const MAX_SPEED = 1.5;
+const ACCELERATION = 2;
+const DECELERATION = 8;
 
 const HALF_PI = Math.PI / 2;
 
-const LEG_SPACE =
-  (Math.sqrt(RADIUS * RADIUS - (RADIUS - HIP_HEIGHT) * (RADIUS - HIP_HEIGHT)) -
-    LEG_WIDTH) *
-  2;
-
-const normaliseAngle = (angle: number): number =>
-  Math.atan2(Math.sin(angle), Math.cos(angle));
-
-const getHipsEllipse = (center: Vector2): Ellipse => {
-  return new Ellipse(
-    center.x,
-    center.y + (RADIUS - HIP_HEIGHT),
-    LEG_SPACE,
-    LEG_SPACE * ELLIPSE_Y_SCALE,
-  );
-};
-
-const getFloorEllipse = (center: Vector2): Ellipse => {
-  return new Ellipse(
-    center.x,
-    center.y + (RADIUS - HIP_HEIGHT) + LEG_LENGTH,
-    LEG_SPACE,
-    LEG_SPACE * ELLIPSE_Y_SCALE,
-  );
-};
-
-const getKneesEllipse = (center: Vector2): Ellipse => {
-  return new Ellipse(
-    center.x,
-    center.y + (RADIUS - HIP_HEIGHT) + LEG_LENGTH * KNEE_POSITION,
-    LEG_SPACE * KNEE_SCALE,
-    LEG_SPACE * KNEE_SCALE * ELLIPSE_Y_SCALE,
-  );
-};
-
 export default class Pal extends SceneObject {
-  position: Vector2;
-  velocity: Vector2;
-  _hipEllipse: Ellipse;
-  _kneeEllipse: Ellipse;
-  _offsetEllipse: Ellipse;
-  _floorEllipse: Ellipse;
+  bod: Circle;
+  _target: Vector2;
   _heading: number = 0;
-  _rightLegLift: number = 0;
-  _leftLegLift: number = 0;
-  _t: number = 0;
+  _speed: number = 0;
+
+  _leftLeg: PalLeg;
+  _rightLeg: PalLeg;
 
   constructor(x: number, y: number) {
     super();
-    this.position = new Vector2(x, y);
-    this.velocity = new Vector2(0, 0);
-
-    this._hipEllipse = getHipsEllipse(this.position);
-    this._kneeEllipse = getKneesEllipse(this.position);
-    this._offsetEllipse = this._hipEllipse.move(
-      this._hipEllipse.center.scale(-1),
-    );
-    this._floorEllipse = getFloorEllipse(this.position);
+    this.bod = new Circle(x, y, RADIUS);
+    this._target = new Vector2(x, y);
     this._heading = Math.PI / 2;
+    this._leftLeg = new PalLeg(this, Math.PI / 2);
+    this._rightLeg = new PalLeg(this, -Math.PI / 2);
+  }
+
+  get heading(): number {
+    return this._heading;
   }
 
   get _headingVec(): Vector2 {
     return Vector2.fromMagnitudeAndAngle(1, this._heading);
   }
 
-  update(dt: number) {
-    this._heading += dt / 1000;
-    this._t += dt;
-    this._rightLegLift = constrain(0, 1, Math.sin(this._t / 100));
-    this._leftLegLift = constrain(0, 1, Math.sin(-this._t / 100));
+  setTarget(x: number, y: number) {
+    this._target = new Vector2(x, y);
   }
 
-  _debugDraw() {
-    this._hipEllipse.debugDraw('lime');
-    this._floorEllipse.debugDraw('cyan');
-    this._kneeEllipse.debugDraw('red');
-    this._floorEllipse.center.debugDraw('magenta');
-    this._floorEllipse.pointOnCircumference(this._heading).debugDraw('magenta');
+  update(dtMilliseconds: number) {
+    const dtSeconds = dtMilliseconds / 1000;
+    const angleToTarget = this.bod.center.angleBetween(this._target);
+    const angleDelta = normaliseAngle(angleToTarget - this._heading);
+    const lastHeading = this._heading;
+    this._heading += angleDelta / 10;
+    const headingVelocity =
+      normaliseAngle(this._heading - lastHeading) / dtSeconds;
+
+    const distance = this._target.distanceTo(this.bod.center);
+    if (distance > 25) {
+      this._accelerate(ACCELERATION, dtSeconds);
+    } else {
+      this._accelerate(-DECELERATION, dtSeconds);
+    }
+
+    this._leftLeg.update(dtSeconds, headingVelocity);
+    this._rightLeg.update(dtSeconds, headingVelocity);
+  }
+
+  _accelerate(amt: number, dtSeconds: number) {
+    const lastSpeed = this._speed;
+    this._speed = constrain(0, MAX_SPEED, this._speed + amt * dtSeconds);
+    const avgSpeed = (lastSpeed + this._speed) / 2;
+    this.bod.center = this.bod.center.add(
+      Vector2.fromMagnitudeAndAngle(avgSpeed, this._heading),
+    );
   }
 
   draw(ctx: CanvasRenderingContext2D) {
     const heading = normaliseAngle(this._heading);
 
     if (Math.abs(heading) < Math.PI / 2) {
-      this._drawRightLeg(ctx);
+      this._rightLeg.draw(ctx);
       this._drawBod(ctx);
-      this._drawLeftLeg(ctx);
+      this._leftLeg.draw(ctx);
     } else {
-      this._drawLeftLeg(ctx);
+      this._leftLeg.draw(ctx);
       this._drawBod(ctx);
-      this._drawRightLeg(ctx);
+      this._rightLeg.draw(ctx);
     }
   }
 
   _drawBod(ctx: CanvasRenderingContext2D) {
     ctx.save();
     ctx.beginPath();
-    ShapeHelpers.circle(ctx, this.position.x, this.position.y, RADIUS);
+    ShapeHelpers.circle(ctx, this.bod.center.x, this.bod.center.y, RADIUS);
     ctx.fillStyle = BOD_COLOR.toString();
     ctx.fill();
     ctx.clip();
@@ -141,96 +117,53 @@ export default class Pal extends SceneObject {
     ctx.beginPath();
     ShapeHelpers.circle(
       ctx,
-      faceX + this.position.x + EYE_X,
-      this.position.y - EYE_Y,
+      faceX + this.bod.center.x + EYE_X,
+      this.bod.center.y - EYE_Y,
       EYE_RADIUS,
     );
     ShapeHelpers.circle(
       ctx,
-      faceX + this.position.x - EYE_X,
-      this.position.y - EYE_Y,
+      faceX + this.bod.center.x - EYE_X,
+      this.bod.center.y - EYE_Y,
       EYE_RADIUS,
     );
-    ctx.fillStyle = DETAIL_COLOR.toString();
+    ctx.fillStyle = FACE_COLOR.toString();
     ctx.fill();
 
     // MOUTH
     ctx.beginPath();
     ctx.moveTo(
-      faceX + this.position.x - MOUTH_WIDTH,
-      this.position.y - MOUTH_Y,
+      faceX + this.bod.center.x - MOUTH_WIDTH,
+      this.bod.center.y - MOUTH_Y,
     );
     ctx.quadraticCurveTo(
-      faceX + this.position.x,
-      this.position.y - MOUTH_Y + MOUNT_SMILE,
-      faceX + this.position.x + MOUTH_WIDTH,
-      this.position.y - MOUTH_Y,
+      faceX + this.bod.center.x,
+      this.bod.center.y - MOUTH_Y + MOUNT_SMILE,
+      faceX + this.bod.center.x + MOUTH_WIDTH,
+      this.bod.center.y - MOUTH_Y,
     );
     ctx.lineWidth = MOUTH_THICKNESS;
-    ctx.strokeStyle = DETAIL_COLOR.toString();
+    ctx.strokeStyle = FACE_COLOR.toString();
     ctx.stroke();
 
     // BUTT
-    const butt1X = faceX + RADIUS * 2;
-    const butt2X = faceX - RADIUS * 2;
     ctx.beginPath();
     this._makeButtLine(ctx, faceX + RADIUS * 2);
     this._makeButtLine(ctx, faceX - RADIUS * 2);
     ctx.lineWidth = BUTT_THICKNESS;
-    ctx.strokeStyle = DETAIL_COLOR.toString();
+    ctx.strokeStyle = BUTT_COLOR.toString();
     ctx.stroke();
 
     ctx.restore();
   }
 
   _makeButtLine(ctx: CanvasRenderingContext2D, buttX: number) {
-    ctx.moveTo(buttX * 1.8 + this.position.x, this.position.y + BUTT_TOP);
+    ctx.moveTo(buttX * 1.6 + this.bod.center.x, this.bod.center.y + BUTT_TOP);
     ctx.quadraticCurveTo(
-      buttX * 1.6 + this.position.x,
-      this.position.y + (BUTT_TOP + BUTT_BOTTOM) * 0.6,
-      buttX + this.position.x,
-      this.position.y + BUTT_BOTTOM,
+      buttX * 1.7 + this.bod.center.x,
+      this.bod.center.y + (BUTT_TOP + BUTT_BOTTOM) * 0.65,
+      buttX + this.bod.center.x,
+      this.bod.center.y + BUTT_BOTTOM,
     );
-  }
-
-  _drawRightLeg(ctx: CanvasRenderingContext2D) {
-    this._drawLeg(ctx, -Math.PI / 2, this._rightLegLift);
-  }
-
-  _drawLeftLeg(ctx: CanvasRenderingContext2D) {
-    this._drawLeg(ctx, Math.PI / 2, this._leftLegLift);
-  }
-
-  _drawLeg(ctx: CanvasRenderingContext2D, offsetAngle: number, lift: number) {
-    ctx.beginPath();
-    const legAngle = this._heading + offsetAngle;
-
-    const footMove = new Vector2(0, LEG_LENGTH * LEG_MAX_LIFT * lift * -1);
-    const kneeMove = footMove
-      .scale(KNEE_POSITION)
-      .add(
-        this._offsetEllipse
-          .pointOnCircumference(this._heading)
-          .scale(KNEE_MAX_OUT * lift),
-      );
-
-    const hip = this._hipEllipse.pointOnCircumference(legAngle);
-    const knee = this._kneeEllipse
-      .move(kneeMove)
-      .pointOnCircumference(legAngle);
-    const foot = this._floorEllipse
-      .move(footMove)
-      .pointOnCircumference(legAngle);
-
-    // hip.debugDraw('lime');
-    // knee.debugDraw('cyan');
-    // foot.debugDraw('red');
-
-    ctx.moveTo(hip.x, hip.y);
-    ctx.quadraticCurveTo(knee.x, knee.y, foot.x, foot.y);
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = LEG_COLOR.toString();
-    ctx.lineWidth = LEG_WIDTH;
-    ctx.stroke();
   }
 }

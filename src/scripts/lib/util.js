@@ -31,3 +31,6 @@ export const uniq = <T>(arr: T[]): T[] =>
 export const compact = <T>(arr: (?T)[]): T[] =>
   // $FlowFixMe
   arr.filter(item => item != null);
+
+export const normaliseAngle = (angle: number): number =>
+  Math.atan2(Math.sin(angle), Math.cos(angle));

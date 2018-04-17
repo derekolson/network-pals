@@ -137,6 +137,13 @@ const scenario4 = () => {
 const scenario5 = () => {
   const pal = new Pal(100, 50);
   scene.addChild(pal);
+
+  const root = document.getElementById('root');
+  invariant(root, '#root must be present');
+
+  root.addEventListener('mousemove', e => {
+    pal.setTarget(e.offsetX / scene.scaleFactor, e.offsetY / scene.scaleFactor);
+  });
 };
 
 const go = () => {
