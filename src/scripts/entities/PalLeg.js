@@ -72,14 +72,16 @@ export default class PalLeg {
     );
     this._floorEllipse = getFloorEllipse(this._pal.bod.radius);
 
-    // this._lastFloorPosition = this._getFloorPosition();
+    this._lastFloorPosition = this._getCurrentFootPosition();
   }
 
   get angle(): number {
     return this._pal.heading + this._angleOffset;
   }
 
-  update(dtSeconds: number, headingVelocity: number) {}
+  update(dtSeconds: number, headingVelocity: number) {
+    this._debugDraw();
+  }
 
   draw(ctx: CanvasRenderingContext2D) {
     ctx.beginPath();
@@ -100,7 +102,7 @@ export default class PalLeg {
 
     const hip = this._getCurrentHipPosition();
     const knee = this._getCurrentKneePosition();
-    const foot = this._getCurrentFootPosition();
+    const foot = this._lastFloorPosition.scale(Math.random() + 1); // this._getCurrentFootPosition();
 
     ctx.moveTo(hip.x, hip.y);
     ctx.quadraticCurveTo(knee.x, knee.y, foot.x, foot.y);

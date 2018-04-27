@@ -31,21 +31,25 @@ const DECELERATION = 8;
 const HALF_PI = Math.PI / 2;
 
 export default class Pal extends SceneObject {
-  bod: Circle;
   _target: Vector2;
   _heading: number = 0;
   _speed: number = 0;
+  position: Vector2;
 
   _leftLeg: PalLeg;
   _rightLeg: PalLeg;
 
   constructor(x: number, y: number) {
     super();
-    this.bod = new Circle(x, y, RADIUS);
+    this.position = new Vector2(x, y);
     this._target = new Vector2(x, y);
     this._heading = Math.PI / 2;
     this._leftLeg = new PalLeg(this, Math.PI / 2);
     this._rightLeg = new PalLeg(this, -Math.PI / 2);
+  }
+
+  get bod(): Circle {
+    return new Circle(this.position.x, this.position.y - 10, RADIUS);
   }
 
   get heading(): number {
@@ -62,14 +66,14 @@ export default class Pal extends SceneObject {
 
   update(dtMilliseconds: number) {
     const dtSeconds = dtMilliseconds / 1000;
-    const angleToTarget = this.bod.center.angleBetween(this._target);
+    const angleToTarget = this.position.angleBetween(this._target);
     const angleDelta = normaliseAngle(angleToTarget - this._heading);
     const lastHeading = this._heading;
     this._heading += angleDelta / 10;
     const headingVelocity =
       normaliseAngle(this._heading - lastHeading) / dtSeconds;
 
-    const distance = this._target.distanceTo(this.bod.center);
+    const distance = this._target.distanceTo(this.position);
     if (distance > 25) {
       this._accelerate(ACCELERATION, dtSeconds);
     } else {
@@ -84,7 +88,7 @@ export default class Pal extends SceneObject {
     const lastSpeed = this._speed;
     this._speed = constrain(0, MAX_SPEED, this._speed + amt * dtSeconds);
     const avgSpeed = (lastSpeed + this._speed) / 2;
-    this.bod.center = this.bod.center.add(
+    this.position = this.position.add(
       Vector2.fromMagnitudeAndAngle(avgSpeed, this._heading),
     );
   }
