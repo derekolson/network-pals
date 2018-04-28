@@ -1,6 +1,7 @@
 // @flow
 import invariant from 'invariant';
 import Line2 from './Line2';
+import { lerp } from '../util';
 
 export type Vector2ish = Vector2 | { x: number, y: number } | [number, number];
 
@@ -103,5 +104,9 @@ export default class Vector2 {
 
   lineThrough(other: Vector2): Line2 {
     return new Line2(this, other);
+  }
+
+  lerp(other: Vector2, amt: number): Vector2 {
+    return new Vector2(lerp(this.x, other.x, amt), lerp(this.y, other.y, amt));
   }
 }

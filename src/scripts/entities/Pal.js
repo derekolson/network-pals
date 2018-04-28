@@ -24,9 +24,9 @@ const BOD_COLOR = BLUE.lighten(0.2);
 const FACE_COLOR = BLUE.darken(0.3);
 const BUTT_COLOR = BLUE.darken(0.1);
 
-const MAX_SPEED = 1.5;
-const ACCELERATION = 2;
-const DECELERATION = 8;
+const MAX_SPEED = 80;
+const ACCELERATION = 100;
+const DECELERATION = 100;
 
 const HALF_PI = Math.PI / 2;
 
@@ -34,6 +34,7 @@ export default class Pal extends SceneObject {
   _target: Vector2;
   _heading: number = 0;
   _speed: number = 0;
+  _headingVelocity: number = 0;
   position: Vector2;
 
   _leftLeg: PalLeg;
@@ -49,7 +50,7 @@ export default class Pal extends SceneObject {
   }
 
   get bod(): Circle {
-    return new Circle(this.position.x, this.position.y - 10, RADIUS);
+    return new Circle(this.position.x, this.position.y - 12, RADIUS);
   }
 
   get heading(): number {
@@ -60,8 +61,22 @@ export default class Pal extends SceneObject {
     return Vector2.fromMagnitudeAndAngle(1, this._heading);
   }
 
+  get velocity(): Vector2 {
+    return this._headingVec.scale(this._speed);
+  }
+
+  get headingVelocity(): number {
+    return this._headingVelocity;
+  }
+
   setTarget(x: number, y: number) {
     this._target = new Vector2(x, y);
+  }
+
+  canLiftLeg(leg: PalLeg): boolean {
+    if (leg === this._rightLeg) return !this._leftLeg.isStepping;
+    if (leg === this._leftLeg) return !this._rightLeg.isStepping;
+    throw new Error('whos leg even is this');
   }
 
   update(dtMilliseconds: number) {
@@ -70,7 +85,7 @@ export default class Pal extends SceneObject {
     const angleDelta = normaliseAngle(angleToTarget - this._heading);
     const lastHeading = this._heading;
     this._heading += angleDelta / 10;
-    const headingVelocity =
+    this._headingVelocity =
       normaliseAngle(this._heading - lastHeading) / dtSeconds;
 
     const distance = this._target.distanceTo(this.position);
@@ -80,8 +95,8 @@ export default class Pal extends SceneObject {
       this._accelerate(-DECELERATION, dtSeconds);
     }
 
-    this._leftLeg.update(dtSeconds, headingVelocity);
-    this._rightLeg.update(dtSeconds, headingVelocity);
+    this._leftLeg.update(dtSeconds);
+    this._rightLeg.update(dtSeconds);
   }
 
   _accelerate(amt: number, dtSeconds: number) {
@@ -89,12 +104,25 @@ export default class Pal extends SceneObject {
     this._speed = constrain(0, MAX_SPEED, this._speed + amt * dtSeconds);
     const avgSpeed = (lastSpeed + this._speed) / 2;
     this.position = this.position.add(
-      Vector2.fromMagnitudeAndAngle(avgSpeed, this._heading),
+      Vector2.fromMagnitudeAndAngle(avgSpeed * dtSeconds, this._heading),
     );
   }
 
   draw(ctx: CanvasRenderingContext2D) {
     const heading = normaliseAngle(this._heading);
+
+    ctx.beginPath();
+    ctx.ellipse(
+      this.position.x,
+      this.position.y,
+      this.bod.radius * 0.8,
+      this.bod.radius * 0.8 * 0.3,
+      0,
+      0,
+      2 * Math.PI,
+    );
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.fill();
 
     if (Math.abs(heading) < Math.PI / 2) {
       this._rightLeg.draw(ctx);
