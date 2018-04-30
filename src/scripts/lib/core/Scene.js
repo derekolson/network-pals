@@ -4,7 +4,7 @@ import type SceneObject from './SceneObject';
 import type SceneSystem from './SceneSystem';
 
 const speed = 1;
-const scale = 4;
+const scale = 1;
 const repeatUpdate = 1;
 
 export default class Scene {
@@ -156,7 +156,9 @@ export default class Scene {
     this._ctx.clearRect(0, 0, this.width, this.height);
 
     this._systems.forEach(system => system.beforeDraw(this._ctx, elapsedTime));
-    this._children.forEach(child => child.draw(this._ctx, elapsedTime));
+    this._children
+      .sort((a, b) => a.getCurrentZ() - b.getCurrentZ())
+      .forEach(child => child.draw(this._ctx, elapsedTime));
     this._systems.forEach(system => system.afterDraw(this._ctx, elapsedTime));
 
     this._ctx.restore();

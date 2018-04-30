@@ -1,21 +1,23 @@
 // @flow
 // import Ellipse from '../lib/geom/Ellipse';
 import Vector2 from '../lib/geom/Vector2';
-import { normaliseAngle, constrain, lerp } from '../lib/util';
+import { normaliseAngle, constrain, lerp, mapRange } from '../lib/util';
 import { BLUE } from '../colors';
 import type Pal from './Pal';
 
-const HIP_HEIGHT = 3;
+const HIP_HEIGHT = 10;
 const Y_SCALE = 0.3;
-const LEG_WIDTH = 1.5;
-// const LEG_LENGTH = 6;
+const LEG_WIDTH = 4;
+// const LEG_LENGTH = 12;
 // const KNEE_POSITION = 0.5;
 const KNEE_SCALE = 1.3;
-const LEG_MAX_LIFT = 0.4;
-const KNEE_MAX_OUT = 5;
-const STEP_DURATION = 0.1;
-const REST_DURATION = 0.01;
-const STEP_THRESHOLD = 2;
+const LEG_MAX_LIFT = 0.3;
+const KNEE_MAX_OUT = 14;
+const STEP_DURATION = 0.2;
+const REST_DURATION = 0.2;
+const STEP_THRESHOLD = 0.2;
+const FULL_STEP_DIST = 20;
+const MIN_STEP_LIFT = 0.1;
 const BASE_COLOR = BLUE.lighten(0.2);
 const DARK_COLOR = BLUE;
 
@@ -35,6 +37,7 @@ export default class PalLeg {
   _lastFootOnFloorPalPosition: Vector2;
   _stepProgress: number = 0;
   _restTimer: number = 0;
+  _currentStepMaxLift: number = 1;
 
   constructor(pal: Pal, angleOffset: number) {
     this._pal = pal;
@@ -59,6 +62,10 @@ export default class PalLeg {
     return this._restTimer > 0;
   }
 
+  get liftAmount(): number {
+    return Math.sin(this._stepProgress * Math.PI) * this._currentStepMaxLift;
+  }
+
   update(dtSeconds: number) {
     this._restTimer = constrain(0, REST_DURATION, this._restTimer - dtSeconds);
     if (this.isResting) return;
@@ -81,6 +88,17 @@ export default class PalLeg {
         this._getIdealFootRestingXY(),
       );
       if (footLeanDistance > STEP_THRESHOLD && this._pal.canLiftLeg(this)) {
+        this._currentStepMaxLift = constrain(
+          0,
+          1,
+          mapRange(
+            STEP_THRESHOLD,
+            FULL_STEP_DIST,
+            MIN_STEP_LIFT,
+            1,
+            footLeanDistance,
+          ),
+        );
         this._stepProgress = constrain(
           0,
           1,
@@ -160,7 +178,7 @@ export default class PalLeg {
   }
 
   _getPredictedIdealFootXYAtEndOfOfStep(): Vector2 {
-    const timeRemaining = (1.5 - this._stepProgress) * STEP_DURATION;
+    const timeRemaining = (1.4 - this._stepProgress) * STEP_DURATION;
 
     const predictedPosition = this._pal.velocity
       .scale(timeRemaining)
@@ -192,16 +210,8 @@ export default class PalLeg {
     return this._lastFootOnFloorXY;
   }
 
-  _getFootLiftAmount(): number {
-    return Math.sin(this._stepProgress * Math.PI);
-  }
-
   _getCurrentFootZ(): number {
-    return lerp(
-      0,
-      this._getCurrentHipZ() * LEG_MAX_LIFT,
-      this._getFootLiftAmount(),
-    );
+    return lerp(0, this._getCurrentHipZ() * LEG_MAX_LIFT, this.liftAmount);
   }
 
   _getCurrentFootOrigin(): Vector2 {
@@ -225,7 +235,7 @@ export default class PalLeg {
       )
       .add(
         Vector2.fromMagnitudeAndAngle(
-          this._getFootLiftAmount() * KNEE_MAX_OUT,
+          this.liftAmount * KNEE_MAX_OUT,
           this._pal.heading,
         ),
       );

@@ -1,4 +1,5 @@
 // @flow
+import invariant from 'invariant';
 import SceneObject from '../lib/core/SceneObject';
 import Vector2 from '../lib/geom/Vector2';
 import Circle from '../lib/geom/Circle';
@@ -7,26 +8,28 @@ import { constrain, normaliseAngle } from '../lib/util';
 import { BLUE } from '../colors';
 import PalLeg from './PalLeg';
 
-const RADIUS = 7;
+const RADIUS = 14;
+const BOD_HEIGHT = 25;
+const BOD_BOB = 15;
 
-const EYE_Y = 3;
-const EYE_X = 2.5;
-const EYE_RADIUS = 1;
-const MOUTH_THICKNESS = 1;
-const MOUTH_Y = 1;
-const MOUTH_WIDTH = 4;
-const MOUNT_SMILE = 2;
-const BUTT_TOP = 3;
-const BUTT_BOTTOM = 6;
-const BUTT_THICKNESS = 0.7;
+const EYE_Y = 6;
+const EYE_X = 5;
+const EYE_RADIUS = 2;
+const MOUTH_THICKNESS = 2;
+const MOUTH_Y = 2;
+const MOUTH_WIDTH = 8;
+const MOUNT_SMILE = 4;
+const BUTT_TOP = 6;
+const BUTT_BOTTOM = 12;
+const BUTT_THICKNESS = 1.4;
 
 const BOD_COLOR = BLUE.lighten(0.2);
 const FACE_COLOR = BLUE.darken(0.3);
 const BUTT_COLOR = BLUE.darken(0.1);
 
 const MAX_SPEED = 80;
-const ACCELERATION = 100;
-const DECELERATION = 100;
+const ACCELERATION = 200;
+const DECELERATION = 200;
 
 const HALF_PI = Math.PI / 2;
 
@@ -37,20 +40,36 @@ export default class Pal extends SceneObject {
   _headingVelocity: number = 0;
   position: Vector2;
 
-  _leftLeg: PalLeg;
-  _rightLeg: PalLeg;
+  _legs: PalLeg[];
 
   constructor(x: number, y: number) {
     super();
     this.position = new Vector2(x, y);
     this._target = new Vector2(x, y);
     this._heading = Math.PI / 2;
-    this._leftLeg = new PalLeg(this, Math.PI / 2);
-    this._rightLeg = new PalLeg(this, -Math.PI / 2);
+    this._legs = [
+      // new PalLeg(this, Math.PI / 2 + 0.8),
+      new PalLeg(this, Math.PI / 2),
+      // new PalLeg(this, Math.PI / 2 - 0.8),
+      // new PalLeg(this, -Math.PI / 2 + 0.8),
+      new PalLeg(this, -Math.PI / 2),
+      // new PalLeg(this, -Math.PI / 2 - 0.8),
+      // new PalLeg(this, 0),
+    ];
   }
 
   get bod(): Circle {
-    return new Circle(this.position.x, this.position.y - 12, RADIUS);
+    const avgLift = this._legs
+      ? this._legs.reduce((sum, leg) => sum + leg.liftAmount, 0) /
+        this._legs.length
+      : 0;
+    const bob = BOD_BOB * avgLift;
+
+    return new Circle(
+      this.position.x,
+      this.position.y - BOD_HEIGHT - bob,
+      RADIUS,
+    );
   }
 
   get heading(): number {
@@ -74,9 +93,8 @@ export default class Pal extends SceneObject {
   }
 
   canLiftLeg(leg: PalLeg): boolean {
-    if (leg === this._rightLeg) return !this._leftLeg.isStepping;
-    if (leg === this._leftLeg) return !this._rightLeg.isStepping;
-    throw new Error('whos leg even is this');
+    invariant(this._legs.includes(leg), 'whos leg even is this');
+    return this._legs.filter(l => l !== leg && !l.isStepping).length > 0;
   }
 
   update(dtMilliseconds: number) {
@@ -87,16 +105,25 @@ export default class Pal extends SceneObject {
     this._heading += angleDelta / 10;
     this._headingVelocity =
       normaliseAngle(this._heading - lastHeading) / dtSeconds;
-
     const distance = this._target.distanceTo(this.position);
-    if (distance > 25) {
+    if (distance > 15) {
       this._accelerate(ACCELERATION, dtSeconds);
     } else {
       this._accelerate(-DECELERATION, dtSeconds);
     }
+    this._legs.forEach(leg => leg.update(dtSeconds));
+  }
 
-    this._leftLeg.update(dtSeconds);
-    this._rightLeg.update(dtSeconds);
+  updateWithPosition(position: Vector2, heading: number, dtSeconds: number) {
+    const lastPosition = this.position;
+    const lastHeading = this._heading;
+
+    this._heading = heading;
+    this._headingVelocity =
+      normaliseAngle(this._heading - lastHeading) / dtSeconds;
+    this._speed = lastPosition.distanceTo(position) / dtSeconds;
+    this.position = position;
+    this._legs.forEach(leg => leg.update(dtSeconds));
   }
 
   _accelerate(amt: number, dtSeconds: number) {
@@ -111,6 +138,7 @@ export default class Pal extends SceneObject {
   draw(ctx: CanvasRenderingContext2D) {
     const heading = normaliseAngle(this._heading);
 
+    ctx.setLineDash([]);
     ctx.beginPath();
     ctx.ellipse(
       this.position.x,
@@ -124,15 +152,13 @@ export default class Pal extends SceneObject {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
     ctx.fill();
 
-    if (Math.abs(heading) < Math.PI / 2) {
-      this._rightLeg.draw(ctx);
-      this._drawBod(ctx);
-      this._leftLeg.draw(ctx);
-    } else {
-      this._leftLeg.draw(ctx);
-      this._drawBod(ctx);
-      this._rightLeg.draw(ctx);
-    }
+    this._legs
+      .filter(l => normaliseAngle(l._angleOffset + heading) < 0)
+      .forEach(leg => leg.draw(ctx));
+    this._legs
+      .filter(l => normaliseAngle(l._angleOffset + heading) >= 0)
+      .forEach(leg => leg.draw(ctx));
+    this._drawBod(ctx);
   }
 
   _drawBod(ctx: CanvasRenderingContext2D) {

@@ -3,27 +3,28 @@ import invariant from 'invariant';
 import SceneObject from '../lib/core/SceneObject';
 import Circle from '../lib/geom/Circle';
 import Vector2 from '../lib/geom/Vector2';
-import ShapeHelpers from '../lib/ShapeHelpers';
+// import ShapeHelpers from '../lib/ShapeHelpers';
 import { outBack, inBack } from '../lib/easings';
 import { sample, constrain, mapRange, random } from '../lib/util';
 import TravellerFinder from '../systems/TravellerFinder';
-import { BLUE } from '../colors';
+// import { BLUE } from '../colors';
 import type { NetworkNode } from './networkNodes/NetworkNode';
 import Intersection from './networkNodes/Intersection';
 import type Road from './Road';
+import Pal from './Pal';
 
-const TRAVELLER_COLOR = BLUE.fade(0.4);
-const TRAVELLER_RADIUS = 7;
-const MIN_TRAVELLER_COMFORTABLE_RADIUS = 30;
-const MAX_TRAVELLER_COMFORTABLE_RADIUS = 30;
-const MIN_TRAVELLER_SAFE_RADIUS = 15;
-const MAX_TRAVELLER_SAFE_RADIUS = 15;
-const NEARBY_RADIUS = 100;
+// const TRAVELLER_COLOR = BLUE.fade(0.4);
+// const TRAVELLER_RADIUS = 14;
+const MIN_TRAVELLER_COMFORTABLE_RADIUS = 60;
+const MAX_TRAVELLER_COMFORTABLE_RADIUS = 60;
+const MIN_TRAVELLER_SAFE_RADIUS = 30;
+const MAX_TRAVELLER_SAFE_RADIUS = 30;
+const NEARBY_RADIUS = 200;
 
 const INITIAL_SPEED = 5;
-const MAX_SPEED = 100;
-const ACCELERATION = 300;
-const DECELERATION = -300;
+const MAX_SPEED = 80;
+const ACCELERATION = 200;
+const DECELERATION = -200;
 const ROAD_END_OVERSHOOT = 0;
 
 const PATIENCE = 1500;
@@ -66,6 +67,7 @@ export default class Traveller extends SceneObject {
   _forceAccelerateTimer: number = 0;
   _stopReason: StopReason | null = null;
   _stoppedFor: Traveller[] = [];
+  _pal: Pal | null = null;
 
   get currentRoad(): Road | null {
     return this._currentRoad;
@@ -168,27 +170,48 @@ export default class Traveller extends SceneObject {
     invariant(currentRoad, 'current road must be defined');
 
     this._move(dtMilliseconds, currentRoad);
+
+    this._getPal().updateWithPosition(
+      this.position,
+      currentRoad.getAngleAtPosition(this._positionOnCurrentRoad),
+      dtMilliseconds / 1000,
+    );
+    if (window.debugDraw) this._debugDraw();
+
     this._checkAtEndOfRoad(currentRoad);
     this._checkExit();
-    if (window.debugDraw) this._debugDraw();
   }
 
   draw(ctx: CanvasRenderingContext2D) {
     const currentRoad = this._currentRoad;
     invariant(currentRoad, 'current road must be defined');
 
-    const position = this.position;
-    const scale =
-      this._getEnterTransitionScale() * this._getExitTransitionScale();
+    this._getPal().draw(ctx);
 
-    ctx.beginPath();
-    ctx.fillStyle = TRAVELLER_COLOR.toString();
-    ShapeHelpers.circle(ctx, position.x, position.y, TRAVELLER_RADIUS * scale);
-    ctx.fill();
+    // const position = this.position;
+    // const scale =
+    //   this._getEnterTransitionScale() * this._getExitTransitionScale();
+
+    // ctx.beginPath();
+    // ctx.fillStyle = TRAVELLER_COLOR.toString();
+    // ShapeHelpers.circle(ctx, position.x, position.y, TRAVELLER_RADIUS * scale);
+    // ctx.fill();
+  }
+
+  getCurrentZ(): number {
+    return this.position.y;
   }
 
   get _isExiting(): boolean {
     return this._exitStartedAt !== null;
+  }
+
+  _getPal(): Pal {
+    if (!this._pal) {
+      this._pal = new Pal(this.position.x, this.position.y);
+    }
+
+    return this._pal;
   }
 
   _debugDraw() {

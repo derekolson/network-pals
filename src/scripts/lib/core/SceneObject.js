@@ -24,6 +24,10 @@ export default class SceneObject {
   // eslint-disable-next-line no-unused-vars
   update(delta: number) {}
 
+  getCurrentZ(): number {
+    return 0;
+  }
+
   onAddedToScene(scene: Scene) {
     this._scene = scene;
   }

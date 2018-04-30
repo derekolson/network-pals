@@ -9,7 +9,7 @@ import Pal from './entities/Pal';
 import DebugOverlay from './systems/DebugOverlay';
 import TravellerFinder from './systems/TravellerFinder';
 
-const ROUND = 20;
+const ROUND = 50;
 
 let scene;
 
@@ -61,39 +61,45 @@ const scenario2 = () => {
 };
 
 const scenario3 = () => {
-  const northConsumer = new Consumer(100, 50, 1500);
-  const middleConsumer = new Consumer(100, 100, 1500);
-  const southConsumer = new Consumer(100, 150, 1500);
-  const eastProducer = new Producer(400, 250, 500);
+  const northConsumer = new Consumer(300, 550, 1500);
+  const middleConsumer = new Consumer(100, 450, 1500);
+  const southConsumer = new Consumer(100, 250, 1500);
+  const eastProducer = new Producer(600, 150, 500);
+  const westProducer = new Producer(100, 100, 500);
   // const westProducer = new Producer(250, 250, 100);
 
   scene.addChild(northConsumer);
   scene.addChild(middleConsumer);
   scene.addChild(southConsumer);
   scene.addChild(eastProducer);
-  // scene.addChild(westProducer);
+  scene.addChild(westProducer);
 
-  const mainJunction = new Junction(230, 100, ROUND);
-  const eastProducerSplit = new Junction(400, 170, ROUND);
+  const mainJunction = new Junction(300, 150, ROUND);
+  const eastProducerSplit = new Junction(500, 370, ROUND);
+  const southConsumerJoin = new Junction(330, 400, ROUND);
   scene.addChild(mainJunction);
   scene.addChild(eastProducerSplit);
+  scene.addChild(southConsumerJoin);
+  scene.addChild(new Road(westProducer, mainJunction));
   scene.addChild(new Road(eastProducer, eastProducerSplit));
+  scene.addChild(new Road(eastProducerSplit, southConsumerJoin));
+  // scene.addChild(
+  //   new Road(eastProducerSplit, mainJunction, {
+  //     points: [[600, 280], [700, 50], [450, 180], [450, 100], [300, 20]],
+  //     // points: [[400, 100]],
+  //     autoRound: 50,
+  //   }),
+  // );
   scene.addChild(
     new Road(eastProducerSplit, mainJunction, {
-      points: [[400, 120], [500, 150], [450, 80], [350, 100], [300, 20]],
-      // points: [[400, 100]],
-      autoRound: 50,
-    }),
-  );
-  scene.addChild(
-    new Road(eastProducerSplit, mainJunction, {
-      points: [[230, 170]],
+      points: [[400, 300], [500, 50]],
       autoRound: ROUND,
     }),
   );
 
   // scene.addChild(new Road(westProducer, mainJunction));
-  scene.addChild(new Road(mainJunction, northConsumer));
+  scene.addChild(new Road(mainJunction, southConsumerJoin));
+  scene.addChild(new Road(southConsumerJoin, northConsumer));
   scene.addChild(new Road(mainJunction, middleConsumer));
   scene.addChild(new Road(mainJunction, southConsumer));
 };
@@ -157,7 +163,7 @@ const go = () => {
   scene.addSystem(new DebugOverlay());
   scene.addSystem(new TravellerFinder());
 
-  scenario5();
+  scenario3();
 
   scene.start();
 };
