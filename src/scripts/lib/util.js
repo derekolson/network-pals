@@ -34,3 +34,9 @@ export const compact = <T>(arr: (?T)[]): T[] =>
 
 export const normaliseAngle = (angle: number): number =>
   Math.atan2(Math.sin(angle), Math.cos(angle));
+
+export const varyAbsolute = (base: number, amount: number): number =>
+  random(base - amount, base + amount);
+
+export const varyRelative = (base: number, amount: number): number =>
+  varyAbsolute(base, base * amount);

@@ -152,6 +152,15 @@ const scenario5 = () => {
   });
 };
 
+const scenario6 = () => {
+  const producer = new Producer(300, 50, 1500).addTo(scene);
+  const consumer = new Consumer(500, 50, 100).addTo(scene);
+  new Road(producer, consumer, {
+    points: [[350, 150], [150, 350], [400, 500], [650, 350], [450, 150]],
+    autoRound: 400,
+  }).addTo(scene);
+};
+
 const go = () => {
   if (window.scene) return;
   scene = new Scene(800, 600, window.devicePixelRatio);
@@ -163,7 +172,7 @@ const go = () => {
   scene.addSystem(new DebugOverlay());
   scene.addSystem(new TravellerFinder());
 
-  scenario3();
+  scenario6();
 
   scene.start();
 };

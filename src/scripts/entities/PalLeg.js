@@ -2,33 +2,33 @@
 // import Ellipse from '../lib/geom/Ellipse';
 import Vector2 from '../lib/geom/Vector2';
 import { normaliseAngle, constrain, lerp, mapRange } from '../lib/util';
-import { BLUE } from '../colors';
-import type Pal from './Pal';
+import type Pal, { PalConfig } from './Pal';
 
-const HIP_HEIGHT = 10;
+// const HIP_HEIGHT = 10;
 const Y_SCALE = 0.3;
-const LEG_WIDTH = 4;
-// const LEG_LENGTH = 12;
-// const KNEE_POSITION = 0.5;
-const KNEE_SCALE = 1.3;
-const LEG_MAX_LIFT = 0.3;
-const KNEE_MAX_OUT = 14;
-const STEP_DURATION = 0.2;
-const REST_DURATION = 0.2;
-const STEP_THRESHOLD = 0.2;
-const FULL_STEP_DIST = 20;
-const MIN_STEP_LIFT = 0.1;
-const BASE_COLOR = BLUE.lighten(0.2);
-const DARK_COLOR = BLUE;
+// const LEG_WIDTH = 4;
+// // const LEG_LENGTH = 12;
+// // const KNEE_POSITION = 0.5;
+// const KNEE_SCALE = 1.3;
+// const LEG_MAX_LIFT = 0.3;
+// const KNEE_MAX_OUT = 14;
+// const STEP_DURATION = 0.2;
+// const REST_DURATION = 0.2;
+// const STEP_THRESHOLD = 0.2;
+// const FULL_STEP_DIST = 20;
+// const MIN_STEP_LIFT = 0.1;
+// const BASE_COLOR = BLUE.lighten(0.2);
+// const DARK_COLOR = BLUE;
 
 const HALF_PI = Math.PI / 2;
 
-const getLegRadius = radius =>
-  Math.sqrt(radius * radius - (radius - HIP_HEIGHT) * (radius - HIP_HEIGHT)) -
-  LEG_WIDTH;
+const getLegRadius = ({ radius, hipHeight, legWidth }: PalConfig) =>
+  Math.sqrt(radius * radius - (radius - hipHeight) * (radius - hipHeight)) -
+  legWidth;
 
 export default class PalLeg {
   _pal: Pal;
+  _config: PalConfig;
   _angleOffset: number;
   _hipRadius: number;
   _kneeRadius: number;
@@ -39,12 +39,13 @@ export default class PalLeg {
   _restTimer: number = 0;
   _currentStepMaxLift: number = 1;
 
-  constructor(pal: Pal, angleOffset: number) {
+  constructor(pal: Pal, config: PalConfig, angleOffset: number) {
     this._pal = pal;
+    this._config = config;
     this._angleOffset = angleOffset;
-    this._hipRadius = getLegRadius(pal.bod.radius);
-    this._kneeRadius = getLegRadius(pal.bod.radius) * KNEE_SCALE;
-    this._floorRadius = getLegRadius(pal.bod.radius);
+    this._hipRadius = getLegRadius(config);
+    this._kneeRadius = getLegRadius(config) * config.kneeScale;
+    this._floorRadius = getLegRadius(config);
 
     this._lastFootOnFloorXY = this._getIdealFootRestingXY();
     this._lastFootOnFloorPalPosition = this._pal.position;
@@ -67,34 +68,41 @@ export default class PalLeg {
   }
 
   update(dtSeconds: number) {
-    this._restTimer = constrain(0, REST_DURATION, this._restTimer - dtSeconds);
+    this._restTimer = constrain(
+      0,
+      this._config.stepRestDuration,
+      this._restTimer - dtSeconds,
+    );
     if (this.isResting) return;
 
     if (this.isStepping) {
       this._stepProgress = constrain(
         0,
         1,
-        this._stepProgress + dtSeconds / STEP_DURATION,
+        this._stepProgress + dtSeconds / this._config.stepDuration,
       );
 
       if (this._stepProgress === 1) {
         this._lastFootOnFloorXY = this._getCurrentFootXY();
         this._lastFootOnFloorPalPosition = this._pal.position;
         this._stepProgress = 0;
-        this._restTimer = REST_DURATION;
+        this._restTimer = this._config.stepDuration;
       }
     } else {
       const footLeanDistance = this._getCurrentFootXY().distanceTo(
         this._getIdealFootRestingXY(),
       );
-      if (footLeanDistance > STEP_THRESHOLD && this._pal.canLiftLeg(this)) {
+      if (
+        footLeanDistance > this._config.stepThreshold &&
+        this._pal.canLiftLeg(this)
+      ) {
         this._currentStepMaxLift = constrain(
           0,
           1,
           mapRange(
-            STEP_THRESHOLD,
-            FULL_STEP_DIST,
-            MIN_STEP_LIFT,
+            this._config.stepThreshold,
+            this._config.fullStepDistance,
+            0.1,
             1,
             footLeanDistance,
           ),
@@ -102,7 +110,7 @@ export default class PalLeg {
         this._stepProgress = constrain(
           0,
           1,
-          this._stepProgress + dtSeconds / STEP_DURATION,
+          this._stepProgress + dtSeconds / this._config.stepDuration,
         );
       }
     }
@@ -120,9 +128,8 @@ export default class PalLeg {
       1,
       Math.abs(normaliseAngle(-HALF_PI - this.angle) / HALF_PI),
     );
-    const legColor = BASE_COLOR.mix(
-      DARK_COLOR,
-      1 - colorDarkenAmount * colorDarkenAmount,
+    const legColor = this._config.color.darken(
+      0.2 * (1 - colorDarkenAmount * colorDarkenAmount),
     );
 
     const hip = this._projectZ(
@@ -145,7 +152,7 @@ export default class PalLeg {
     ctx.quadraticCurveTo(knee.x, knee.y, foot.x, foot.y);
     ctx.lineCap = 'round';
     ctx.strokeStyle = legColor.toString();
-    ctx.lineWidth = LEG_WIDTH;
+    ctx.lineWidth = this._config.legWidth;
     ctx.stroke();
   }
 
@@ -178,7 +185,8 @@ export default class PalLeg {
   }
 
   _getPredictedIdealFootXYAtEndOfOfStep(): Vector2 {
-    const timeRemaining = (1.4 - this._stepProgress) * STEP_DURATION;
+    const timeRemaining =
+      (1.4 - this._stepProgress) * this._config.stepDuration;
 
     const predictedPosition = this._pal.velocity
       .scale(timeRemaining)
@@ -211,7 +219,11 @@ export default class PalLeg {
   }
 
   _getCurrentFootZ(): number {
-    return lerp(0, this._getCurrentHipZ() * LEG_MAX_LIFT, this.liftAmount);
+    return lerp(
+      0,
+      this._getCurrentHipZ() * this._config.legMaxLift,
+      this.liftAmount,
+    );
   }
 
   _getCurrentFootOrigin(): Vector2 {
@@ -235,7 +247,7 @@ export default class PalLeg {
       )
       .add(
         Vector2.fromMagnitudeAndAngle(
-          this.liftAmount * KNEE_MAX_OUT,
+          this.liftAmount * this._config.kneeMaxOut,
           this._pal.heading,
         ),
       );
@@ -265,7 +277,7 @@ export default class PalLeg {
     return (
       this._pal.position.y -
       this._pal.bod.center.y -
-      (this._pal.bod.radius - HIP_HEIGHT)
+      (this._pal.bod.radius - this._config.hipHeight)
     );
   }
 

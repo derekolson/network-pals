@@ -28,6 +28,11 @@ export default class SceneObject {
     return 0;
   }
 
+  addTo(scene: Scene): this {
+    scene.addChild(this);
+    return this;
+  }
+
   onAddedToScene(scene: Scene) {
     this._scene = scene;
   }

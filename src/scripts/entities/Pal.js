@@ -1,31 +1,38 @@
 // @flow
 import invariant from 'invariant';
+import type Color from 'color';
 import SceneObject from '../lib/core/SceneObject';
 import Vector2 from '../lib/geom/Vector2';
 import Circle from '../lib/geom/Circle';
 import ShapeHelpers from '../lib/ShapeHelpers';
-import { constrain, normaliseAngle } from '../lib/util';
+import {
+  constrain,
+  normaliseAngle,
+  varyRelative,
+  varyAbsolute,
+  random,
+} from '../lib/util';
 import { BLUE } from '../colors';
 import PalLeg from './PalLeg';
 
-const RADIUS = 14;
-const BOD_HEIGHT = 25;
-const BOD_BOB = 15;
+// const RADIUS = 14;
+// const BOD_HEIGHT = 25;
+// const BOD_BOB = 15;
 
-const EYE_Y = 6;
-const EYE_X = 5;
-const EYE_RADIUS = 2;
-const MOUTH_THICKNESS = 2;
-const MOUTH_Y = 2;
-const MOUTH_WIDTH = 8;
-const MOUNT_SMILE = 4;
-const BUTT_TOP = 6;
-const BUTT_BOTTOM = 12;
-const BUTT_THICKNESS = 1.4;
+// const EYE_Y = 6;
+// const EYE_X = 5;
+// const EYE_RADIUS = 2;
+// const MOUTH_THICKNESS = 2;
+// const MOUTH_Y = 2;
+// const MOUTH_WIDTH = 8;
+// const MOUNT_SMILE = 4;
+// const BUTT_TOP = 6;
+// const BUTT_BOTTOM = 12;
+// const BUTT_THICKNESS = 1.4;
 
-const BOD_COLOR = BLUE.lighten(0.2);
-const FACE_COLOR = BLUE.darken(0.3);
-const BUTT_COLOR = BLUE.darken(0.1);
+// const BOD_COLOR = BLUE.lighten(0.2);
+// const FACE_COLOR = BLUE.darken(0.3);
+// const BUTT_COLOR = BLUE.darken(0.1);
 
 const MAX_SPEED = 80;
 const ACCELERATION = 200;
@@ -33,26 +40,120 @@ const DECELERATION = 200;
 
 const HALF_PI = Math.PI / 2;
 
+export type PalConfig = {|
+  radius: number,
+  bodHeight: number,
+  bodBob: number,
+  eyeY: number,
+  eyeX: number,
+  eyeRadius: number,
+  mouthThickness: number,
+  mouthY: number,
+  mouthWidth: number,
+  mouthSmile: number,
+  buttTop: number,
+  buttBottom: number,
+  buttThickness: number,
+  color: Color,
+  hipHeight: number,
+  kneeScale: number,
+  legMaxLift: number,
+  kneeMaxOut: number,
+  stepDuration: number,
+  stepRestDuration: number,
+  stepThreshold: number,
+  fullStepDistance: number,
+  legWidth: number,
+|};
+
+const classicPalConfig: PalConfig = {
+  radius: 14,
+  bodHeight: 25,
+  bodBob: 15,
+  eyeY: 6,
+  eyeX: 5,
+  eyeRadius: 2,
+  mouthThickness: 2,
+  mouthY: 2,
+  mouthWidth: 8,
+  mouthSmile: 4,
+  buttTop: 6,
+  buttBottom: 12,
+  buttThickness: 1.4,
+  color: BLUE.lighten(0.2),
+  hipHeight: 10,
+  kneeScale: 1.3,
+  legMaxLift: 0.3,
+  kneeMaxOut: 14,
+  stepDuration: 0.2,
+  stepRestDuration: 0.2,
+  stepThreshold: 0.2,
+  fullStepDistance: 20,
+  legWidth: 4,
+};
+
+const generateRandomPalConfig = (): PalConfig => {
+  const radius = varyRelative(14, 0.2);
+  const hipHeight = varyRelative(radius * 0.7, 0.3);
+  const bodHeight = varyRelative(radius * 2, 0.3);
+  const legLength = bodHeight - (radius - hipHeight); // typical: 24
+  console.log({ radius, hipHeight, bodHeight, legLength });
+
+  return Object.assign({}, classicPalConfig, {
+    radius,
+    bodHeight,
+    bodBob: varyRelative(radius, 0.2),
+    eyeY: varyRelative(radius * 0.5, 0.2),
+    eyeX: varyRelative(radius * 0.4, 0.3),
+    eyeRadius: varyRelative(radius * 0.15, 0.4),
+    mouthThickness: varyRelative(radius * 0.15, 0.4),
+    mouthY: varyAbsolute(0, radius * 0.2),
+    mouthWidth: varyRelative(radius * 0.5, 0.3),
+    mouthSmile: varyRelative(radius * 0.3, 0.3),
+    buttTop: varyRelative(radius * 0.4, 0.2),
+    buttBottom: varyRelative(radius * 0.85, 0.15),
+    buttThickness: varyRelative(radius * 0.1, 0.5),
+    color: BLUE.lighten(random(-0.2, 0.2))
+      .saturate(random(-0.2, 0.2))
+      .rotate(random(-10, 10)),
+    hipHeight,
+    kneeScale: varyAbsolute(1.3, 0.3),
+    legMaxLift: random(0.2, 0.5),
+    kneeMaxOut: varyRelative(legLength * 0.6, 0.4),
+    stepDuration: varyRelative(legLength * 0.01, 0.4),
+    stepRestDuration: varyRelative(legLength * 0.0083, 0.4),
+    stepThreshold: varyRelative(legLength * 0.01, 0.4),
+    fullStepDistance: varyRelative(legLength * 0.7, 0.4),
+    legWidth: varyRelative(radius * 0.3, 0.4),
+  });
+};
+
 export default class Pal extends SceneObject {
   _target: Vector2;
   _heading: number = 0;
   _speed: number = 0;
   _headingVelocity: number = 0;
   position: Vector2;
+  _config: PalConfig;
 
   _legs: PalLeg[];
 
-  constructor(x: number, y: number) {
+  constructor(
+    x: number,
+    y: number,
+    config: PalConfig = generateRandomPalConfig(),
+  ) {
     super();
     this.position = new Vector2(x, y);
+    this._config = config;
     this._target = new Vector2(x, y);
     this._heading = Math.PI / 2;
     this._legs = [
       // new PalLeg(this, Math.PI / 2 + 0.8),
-      new PalLeg(this, Math.PI / 2),
+      new PalLeg(this, config, Math.PI / 2),
       // new PalLeg(this, Math.PI / 2 - 0.8),
       // new PalLeg(this, -Math.PI / 2 + 0.8),
-      new PalLeg(this, -Math.PI / 2),
+      new PalLeg(this, config, -Math.PI / 2),
       // new PalLeg(this, -Math.PI / 2 - 0.8),
       // new PalLeg(this, 0),
     ];
@@ -63,12 +164,12 @@ export default class Pal extends SceneObject {
       ? this._legs.reduce((sum, leg) => sum + leg.liftAmount, 0) /
         this._legs.length
       : 0;
-    const bob = BOD_BOB * avgLift;
+    const bob = this._config.bodBob * avgLift;
 
     return new Circle(
       this.position.x,
-      this.position.y - BOD_HEIGHT - bob,
-      RADIUS,
+      this.position.y - this._config.bodHeight - bob,
+      this._config.radius,
     );
   }
 
@@ -164,64 +265,74 @@ export default class Pal extends SceneObject {
   _drawBod(ctx: CanvasRenderingContext2D) {
     ctx.save();
     ctx.beginPath();
-    ShapeHelpers.circle(ctx, this.bod.center.x, this.bod.center.y, RADIUS);
-    ctx.fillStyle = BOD_COLOR.toString();
+    ShapeHelpers.circle(
+      ctx,
+      this.bod.center.x,
+      this.bod.center.y,
+      this._config.radius,
+    );
+    ctx.fillStyle = this._config.color.toString();
     ctx.fill();
     ctx.clip();
 
-    const faceX = normaliseAngle(HALF_PI - this._heading) / HALF_PI * RADIUS;
+    const faceX =
+      normaliseAngle(HALF_PI - this._heading) / HALF_PI * this._config.radius;
 
     // EYES
     ctx.beginPath();
     ShapeHelpers.circle(
       ctx,
-      faceX + this.bod.center.x + EYE_X,
-      this.bod.center.y - EYE_Y,
-      EYE_RADIUS,
+      faceX + this.bod.center.x + this._config.eyeX,
+      this.bod.center.y - this._config.eyeY,
+      this._config.eyeRadius,
     );
     ShapeHelpers.circle(
       ctx,
-      faceX + this.bod.center.x - EYE_X,
-      this.bod.center.y - EYE_Y,
-      EYE_RADIUS,
+      faceX + this.bod.center.x - this._config.eyeX,
+      this.bod.center.y - this._config.eyeY,
+      this._config.eyeRadius,
     );
-    ctx.fillStyle = FACE_COLOR.toString();
+    ctx.fillStyle = this._config.color.darken(0.5).toString();
     ctx.fill();
 
     // MOUTH
     ctx.beginPath();
     ctx.moveTo(
-      faceX + this.bod.center.x - MOUTH_WIDTH,
-      this.bod.center.y - MOUTH_Y,
+      faceX + this.bod.center.x - this._config.mouthWidth,
+      this.bod.center.y - this._config.mouthY,
     );
     ctx.quadraticCurveTo(
       faceX + this.bod.center.x,
-      this.bod.center.y - MOUTH_Y + MOUNT_SMILE,
-      faceX + this.bod.center.x + MOUTH_WIDTH,
-      this.bod.center.y - MOUTH_Y,
+      this.bod.center.y - this._config.mouthY + this._config.mouthSmile,
+      faceX + this.bod.center.x + this._config.mouthWidth,
+      this.bod.center.y - this._config.mouthY,
     );
-    ctx.lineWidth = MOUTH_THICKNESS;
-    ctx.strokeStyle = FACE_COLOR.toString();
+    ctx.lineWidth = this._config.mouthThickness;
+    ctx.strokeStyle = this._config.color.darken(0.5).toString();
     ctx.stroke();
 
     // BUTT
     ctx.beginPath();
-    this._makeButtLine(ctx, faceX + RADIUS * 2);
-    this._makeButtLine(ctx, faceX - RADIUS * 2);
-    ctx.lineWidth = BUTT_THICKNESS;
-    ctx.strokeStyle = BUTT_COLOR.toString();
+    this._makeButtLine(ctx, faceX + this._config.radius * 2);
+    this._makeButtLine(ctx, faceX - this._config.radius * 2);
+    ctx.lineWidth = this._config.buttThickness;
+    ctx.strokeStyle = this._config.color.darken(0.3).toString();
     ctx.stroke();
 
     ctx.restore();
   }
 
   _makeButtLine(ctx: CanvasRenderingContext2D, buttX: number) {
-    ctx.moveTo(buttX * 1.6 + this.bod.center.x, this.bod.center.y + BUTT_TOP);
+    ctx.moveTo(
+      buttX * 1.6 + this.bod.center.x,
+      this.bod.center.y + this._config.buttTop,
+    );
     ctx.quadraticCurveTo(
       buttX * 1.7 + this.bod.center.x,
-      this.bod.center.y + (BUTT_TOP + BUTT_BOTTOM) * 0.65,
+      this.bod.center.y +
+        (this._config.buttTop + this._config.buttBottom) * 0.65,
       buttX + this.bod.center.x,
-      this.bod.center.y + BUTT_BOTTOM,
+      this.bod.center.y + this._config.buttBottom,
     );
   }
 }
