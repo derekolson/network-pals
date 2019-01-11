@@ -67,6 +67,10 @@ export default class PalLeg {
     return Math.sin(this._stepProgress * Math.PI) * this._currentStepMaxLift;
   }
 
+  get stepProgress(): number {
+    return this._stepProgress;
+  }
+
   update(dtSeconds: number) {
     this._restTimer = constrain(
       0,

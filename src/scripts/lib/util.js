@@ -40,3 +40,17 @@ export const varyAbsolute = (base: number, amount: number): number =>
 
 export const varyRelative = (base: number, amount: number): number =>
   varyAbsolute(base, base * amount);
+
+export const times = <T>(count: number, fn: number => T): T[] => {
+  const result = [];
+  for (let i = 0; i < count; i++) {
+    result.push(fn(i));
+  }
+  return result;
+};
+
+export const shuffle = <T>(arr: T[]): T[] =>
+  arr
+    .map(item => [item, Math.random()])
+    .sort((a, b) => a[1] - b[1])
+    .map(entry => entry[0]);

@@ -6,11 +6,16 @@ import Vector2 from '../lib/geom/Vector2';
 import Circle from '../lib/geom/Circle';
 import ShapeHelpers from '../lib/ShapeHelpers';
 import {
+  lerp,
   constrain,
   normaliseAngle,
   varyRelative,
   varyAbsolute,
   random,
+  randomInt,
+  flatten,
+  times,
+  shuffle,
 } from '../lib/util';
 import { BLUE } from '../colors';
 import PalLeg from './PalLeg';
@@ -64,8 +69,10 @@ export type PalConfig = {|
   stepThreshold: number,
   fullStepDistance: number,
   legWidth: number,
+  legPairs: number,
 |};
 
+// eslint-disable-next-line no-unused-vars
 const classicPalConfig: PalConfig = {
   radius: 14,
   bodHeight: 25,
@@ -90,6 +97,7 @@ const classicPalConfig: PalConfig = {
   stepThreshold: 0.2,
   fullStepDistance: 20,
   legWidth: 4,
+  legPairs: 1,
 };
 
 const generateRandomPalConfig = (): PalConfig => {
@@ -97,9 +105,8 @@ const generateRandomPalConfig = (): PalConfig => {
   const hipHeight = varyRelative(radius * 0.7, 0.3);
   const bodHeight = varyRelative(radius * 2, 0.3);
   const legLength = bodHeight - (radius - hipHeight); // typical: 24
-  console.log({ radius, hipHeight, bodHeight, legLength });
 
-  return Object.assign({}, classicPalConfig, {
+  return {
     radius,
     bodHeight,
     bodBob: varyRelative(radius, 0.2),
@@ -125,7 +132,8 @@ const generateRandomPalConfig = (): PalConfig => {
     stepThreshold: varyRelative(legLength * 0.01, 0.4),
     fullStepDistance: varyRelative(legLength * 0.7, 0.4),
     legWidth: varyRelative(radius * 0.3, 0.4),
-  });
+    legPairs: randomInt(1, 4),
+  };
 };
 
 export default class Pal extends SceneObject {
@@ -148,15 +156,22 @@ export default class Pal extends SceneObject {
     this._config = config;
     this._target = new Vector2(x, y);
     this._heading = Math.PI / 2;
-    this._legs = [
-      // new PalLeg(this, Math.PI / 2 + 0.8),
-      new PalLeg(this, config, Math.PI / 2),
-      // new PalLeg(this, Math.PI / 2 - 0.8),
-      // new PalLeg(this, -Math.PI / 2 + 0.8),
-      new PalLeg(this, config, -Math.PI / 2),
-      // new PalLeg(this, -Math.PI / 2 - 0.8),
-      // new PalLeg(this, 0),
-    ];
+
+    this._legs = shuffle(
+      flatten(
+        times(config.legPairs, n => {
+          const progress = (n + 1) / (config.legPairs + 1);
+          return [
+            new PalLeg(this, config, lerp(HALF_PI - 1, HALF_PI + 1, progress)),
+            new PalLeg(
+              this,
+              config,
+              lerp(-HALF_PI + 1, -HALF_PI - 1, progress),
+            ),
+          ];
+        }),
+      ),
+    );
   }
 
   get bod(): Circle {
@@ -195,7 +210,17 @@ export default class Pal extends SceneObject {
 
   canLiftLeg(leg: PalLeg): boolean {
     invariant(this._legs.includes(leg), 'whos leg even is this');
-    return this._legs.filter(l => l !== leg && !l.isStepping).length > 0;
+    const enoughLegsOnFloor =
+      this._legs.filter(l => l !== leg && !l.isStepping).length >
+      Math.floor(Math.log(this._legs.length));
+
+    const anyStepsJustStarted = this._legs.some(
+      leg =>
+        leg.stepProgress > 0 &&
+        leg.stepProgress < 1 / (this._legs.length / 1.5),
+    );
+
+    return enoughLegsOnFloor && !anyStepsJustStarted;
   }
 
   update(dtMilliseconds: number) {

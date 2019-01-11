@@ -172,7 +172,7 @@ const go = () => {
   scene.addSystem(new DebugOverlay());
   scene.addSystem(new TravellerFinder());
 
-  scenario6();
+  scenario3();
 
   scene.start();
 };
