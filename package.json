@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "color": "3.0.0",
+    "d3": "5.15.0",
     "invariant": "2.2.4"
   },
   "devDependencies": {

@@ -8,6 +8,7 @@ import Junction from './entities/Junction';
 import Pal from './entities/Pal';
 import DebugOverlay from './systems/DebugOverlay';
 import TravellerFinder from './systems/TravellerFinder';
+import * as d3 from 'd3';
 
 const ROUND = 50;
 
