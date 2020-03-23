@@ -161,9 +161,65 @@ const scenario6 = () => {
   }).addTo(scene);
 };
 
+const scenarioSim = () => {
+  var N = 50;
+  var radius = 25;
+  var width = scene.width;
+  var height = scene.height;
+  var xMax = 1,
+      xMin = 0,
+      yMax = 1,
+      yMin = 0;
+  var xscale = d3.scaleLinear().domain([xMin, xMax]).range([0, width]),
+      yscale = d3.scaleLinear().domain([yMin, yMax]).range([0, height]);
+
+  var xData = Array.from({length: N}, d3.randomUniform(0.5, 0.5)),
+      yData = Array.from({length: N}, d3.randomUniform(0.5, 0.5));
+
+  var nodes = xData.map( (d, i) => {
+    return Object.create({x: d, y: yData[i]})
+  });
+
+  var simulation = d3.forceSimulation(nodes)
+        .force("x", d3.forceX(d => { return xscale(d.x) }).strength(0.5))
+        .force("y", d3.forceY(d => { return yscale(d.y) }).strength(0.1))
+        .force("collide", d3.forceCollide(radius))
+        .velocityDecay(0.5)
+        .alphaTarget(0.1)
+        // .alphaDecay(0.05);
+
+  const pals = []
+  for(var i = 0; i < nodes.length; i++) {
+    const d = nodes[i];
+    const pal = new Pal(xscale(d.x), yscale(d.y));
+    pals.push(pal)
+    scene.addChild(pal);
+  }
+
+  simulation.on("tick", () => {
+    for(var i = 0; i < nodes.length; i++) {
+      const d = nodes[i];
+      const pal = pals[i];
+      pal.setTarget(d.x, d.y);
+    }
+  });
+
+  document.querySelector('#root').addEventListener('click', (e) => {
+
+    nodes.forEach((n) => {
+      n.x = e.offsetX / scene.width;
+      n.y = e.offsetY / scene.height;
+    });
+
+    simulation
+      .nodes(nodes)
+      .restart()
+  });
+};
+
 const go = () => {
   if (window.scene) return;
-  scene = new Scene(800, 600, window.devicePixelRatio);
+  scene = new Scene(window.innerWidth, window.innerHeight, window.devicePixelRatio);
   window.scene = scene;
   const root = document.getElementById('root');
   invariant(root, '#root must be present');
@@ -172,7 +228,7 @@ const go = () => {
   scene.addSystem(new DebugOverlay());
   scene.addSystem(new TravellerFinder());
 
-  scenario3();
+  scenarioSim();
 
   scene.start();
 };

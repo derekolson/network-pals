@@ -39,7 +39,7 @@ import PalLeg from './PalLeg';
 // const FACE_COLOR = BLUE.darken(0.3);
 // const BUTT_COLOR = BLUE.darken(0.1);
 
-const MAX_SPEED = 80;
+const MAX_SPEED = 100;
 const ACCELERATION = 200;
 const DECELERATION = 200;
 
@@ -132,7 +132,7 @@ const generateRandomPalConfig = (): PalConfig => {
     stepThreshold: varyRelative(legLength * 0.01, 0.4),
     fullStepDistance: varyRelative(legLength * 0.7, 0.4),
     legWidth: varyRelative(radius * 0.3, 0.4),
-    legPairs: randomInt(1, 4),
+    legPairs: randomInt(1, 2),
   };
 };
 
@@ -206,6 +206,10 @@ export default class Pal extends SceneObject {
 
   setTarget(x: number, y: number) {
     this._target = new Vector2(x, y);
+  }
+
+  getCurrentZ(): number {
+    return this.position.y;
   }
 
   canLiftLeg(leg: PalLeg): boolean {
