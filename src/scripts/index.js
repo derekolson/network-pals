@@ -174,47 +174,73 @@ const scenarioSim = () => {
   var xscale = d3.scaleLinear().domain([xMin, xMax]).range([0, width]),
       yscale = d3.scaleLinear().domain([yMin, yMax]).range([0, height]);
 
-  var xData = Array.from({length: N}, d3.randomUniform(0.5, 0.5)),
-      yData = Array.from({length: N}, d3.randomUniform(0.5, 0.5));
+  var xData = Array.from({length: N}, d3.randomUniform(0.45, 0.55)),
+      yData = Array.from({length: N}, d3.randomUniform(0.4, 0.6));
 
-  var nodes = xData.map( (d, i) => {
-    return Object.create({x: d, y: yData[i]})
+  var data = xData.map( (d, i) => {
+    return Object.create({id: i, xPos: d, yPos: yData[i]})
   });
 
-  var simulation = d3.forceSimulation(nodes)
-        .force("x", d3.forceX(d => { return xscale(d.x) }).strength(0.5))
-        .force("y", d3.forceY(d => { return yscale(d.y) }).strength(0.1))
-        .force("collide", d3.forceCollide(radius))
-        .velocityDecay(0.5)
-        .alphaTarget(0.1)
-        // .alphaDecay(0.05);
+  var detachedContainer = document.createElement('custom');
+  var dataContainer     = d3.select(detachedContainer);
 
-  const pals = []
-  for(var i = 0; i < nodes.length; i++) {
-    const d = nodes[i];
-    const pal = new Pal(xscale(d.x), yscale(d.y));
-    pals.push(pal)
-    scene.addChild(pal);
+  function databind (data) {
+    var dataBinding = dataContainer.selectAll('custom.circle').data(data);
+
+    dataBinding
+      .enter()
+      .append('custom')
+      .attr('class', 'circle')
+      .each(function(d, i) {
+        // const node = d3.select(this)
+        d.sprite = new Pal(xscale(d.xPos), yscale(d.yPos));
+        d.sprite.setTarget(xscale(d.xPos), yscale(d.yPos))
+        scene.addChild(d.sprite);
+      })
   }
 
-  simulation.on("tick", () => {
-    for(var i = 0; i < nodes.length; i++) {
-      const d = nodes[i];
-      const pal = pals[i];
-      pal.setTarget(d.x, d.y);
-    }
-  });
+  var simulation = d3.forceSimulation().alpha(0.1).alphaTarget(0.05).velocityDecay(0.3)
+
+  function update() {
+    databind(data)
+    var nodes = dataContainer.selectAll('custom.circle').data(data);
+
+    simulation = simulation.nodes(data)
+          .force("x", d3.forceX(d => { return xscale(d.xPos) }).strength(0.5))
+          .force("y", d3.forceY(d => { return yscale(d.yPos) }).strength(0.1))
+          .force("collide", d3.forceCollide(radius));
+
+    simulation.on("tick", () => {
+      nodes
+        .attr('x', d => d.x)
+        .attr('y', d => d.y)
+        .each(function(d, i) {
+          var node = d3.select(this);
+          d.sprite.setTarget(node.attr('x'), node.attr('y'));
+        })
+    });
+  }
+
+  update();
 
   document.querySelector('#root').addEventListener('click', (e) => {
+    // const indexToChange = Math.floor(Math.random() * N);
+    // data[indexToChange]['xPos'] = d3.randomUniform(xMin, xMax)();
+    // data[indexToChange]['yPos'] = d3.randomUniform(yMin, yMax)();
 
-    nodes.forEach((n) => {
-      n.x = e.offsetX / scene.width;
-      n.y = e.offsetY / scene.height;
+    data.forEach((n) => {
+      if(Math.random() < 0.3) {
+        n.xPos = e.offsetX / scene.width;
+        n.yPos = e.offsetY / scene.height;
+        // n.xPos = 0.3;
+        // n.yPos = 0.5;
+      } else {
+        n.xPos = 0.6;
+        n.yPos = 0.5;
+      }
     });
 
-    simulation
-      .nodes(nodes)
-      .restart()
+    update()
   });
 };
 
